@@ -1,0 +1,51 @@
+# Code owners — see docs/WORK_PLAN.md §3.1.
+# Raven must approve every change under these paths (enforced by branch protection "Require review from Code Owners").
+# Everything else (screens, UI kit, i18n, Jamshid's supervised services) is reviewed normally.
+
+# Database, security and cross-cutting backend
+/apps/api/migrations/                  @Ravencrest-01
+/apps/api/alembic.ini                  @Ravencrest-01
+/apps/api/pyproject.toml               @Ravencrest-01
+/apps/api/uv.lock                      @Ravencrest-01
+/apps/api/Dockerfile                   @Ravencrest-01
+/apps/api/seedoc/main.py               @Ravencrest-01
+/apps/api/seedoc/config.py             @Ravencrest-01
+/apps/api/seedoc/db/                   @Ravencrest-01
+/apps/api/seedoc/models/               @Ravencrest-01
+/apps/api/seedoc/security/             @Ravencrest-01
+/apps/api/seedoc/deps.py               @Ravencrest-01
+/apps/api/seedoc/errors.py             @Ravencrest-01
+/apps/api/seedoc/audit.py              @Ravencrest-01
+/apps/api/seedoc/usage.py              @Ravencrest-01
+/apps/api/seedoc/ai/                   @Ravencrest-01
+/apps/api/seedoc/storage/              @Ravencrest-01
+/apps/api/seedoc/jobs/                 @Ravencrest-01
+
+# Critical routers and services
+/apps/api/seedoc/routers/auth.py       @Ravencrest-01
+/apps/api/seedoc/routers/staff.py      @Ravencrest-01
+/apps/api/seedoc/routers/portal.py     @Ravencrest-01
+/apps/api/seedoc/routers/operator.py   @Ravencrest-01
+/apps/api/seedoc/routers/internal.py   @Ravencrest-01
+/apps/api/seedoc/services/auth.py      @Ravencrest-01
+/apps/api/seedoc/services/documents.py @Ravencrest-01
+/apps/api/seedoc/services/releases.py  @Ravencrest-01
+/apps/api/seedoc/services/portal.py    @Ravencrest-01
+/apps/api/seedoc/services/pins.py      @Ravencrest-01
+/apps/api/seedoc/services/operators.py @Ravencrest-01
+/apps/api/seedoc/services/exports.py   @Ravencrest-01
+
+# Tests are never changed to make code pass
+/apps/api/tests/                       @Ravencrest-01
+
+# Dependencies and build of the web app
+/package.json                          @Ravencrest-01
+/pnpm-lock.yaml                        @Ravencrest-01
+/apps/web/package.json                 @Ravencrest-01
+/apps/web/Dockerfile                   @Ravencrest-01
+
+# Infra, CI and repo settings
+/infra/                                @Ravencrest-01
+/.github/                              @Ravencrest-01
+/Makefile                              @Ravencrest-01
+/.gitignore                            @Ravencrest-01
