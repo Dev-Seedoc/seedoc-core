@@ -1,0 +1,36 @@
+# Files copied from the local seedoc docs folder — kept locally, never committed
+.env.example
+.github/copilot-instructions.md
+AGENTS.md
+CLAUDE.md
+docs/
+
+# Local secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.vite/
+
+# Playwright
+apps/web/test-results/
+apps/web/playwright-report/
+
+# Editors / OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db

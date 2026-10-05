@@ -1,0 +1,15 @@
+{
+  "name": "seedoc",
+  "private": true,
+  "packageManager": "pnpm@11.22.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev:web": "pnpm --dir apps/web dev",
+    "lint": "pnpm --dir apps/web lint",
+    "typecheck": "pnpm --dir apps/web typecheck",
+    "test": "pnpm --dir apps/web test",
+    "build": "pnpm --dir apps/web build"
+  }
+}

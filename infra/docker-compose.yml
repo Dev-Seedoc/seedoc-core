@@ -1,0 +1,107 @@
+# Local development stack (ARCHITECTURE §12).
+#   docker compose -f infra/docker-compose.yml up -d                 → postgres, s3, mailpit (run api/web on the host: make dev)
+#   docker compose -f infra/docker-compose.yml --profile app up -d   → also api + web in containers
+name: seedoc
+
+x-api-env: &api-env
+  DATABASE_URL: postgresql+asyncpg://seedoc_app:seedoc_app@postgres:5432/seedoc
+  DATABASE_ADMIN_URL: postgresql+asyncpg://seedoc_admin:seedoc_admin@postgres:5432/seedoc
+  DATABASE_OWNER_URL: postgresql+asyncpg://seedoc_owner:seedoc_owner@postgres:5432/seedoc
+  S3_ENDPOINT: http://s3:9000
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: seedoc
+    ports:
+      - "5433:5432"  # 5433 on the host avoids clashing with a locally installed PostgreSQL
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d seedoc"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # S3-compatible object store. MinIO no longer publishes public images, so local dev uses RustFS
+  # (same S3 API, same ports and credentials as .env.example).
+  s3:
+    image: rustfs/rustfs:latest
+    environment:
+      RUSTFS_ACCESS_KEY: minioadmin
+      RUSTFS_SECRET_KEY: minioadmin
+      RUSTFS_ADDRESS: ":9000"
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_CONSOLE_ADDRESS: ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - s3-data:/data
+
+  s3-init:
+    image: amazon/aws-cli:latest
+    depends_on:
+      - s3
+    environment:
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      AWS_DEFAULT_REGION: eu-central-1
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        s3="aws --endpoint-url http://s3:9000 s3api"
+        for i in $$(seq 1 30); do $$s3 list-buckets >/dev/null 2>&1 && break; sleep 1; done
+        $$s3 head-bucket --bucket seedoc-local 2>/dev/null || $$s3 create-bucket --bucket seedoc-local
+        $$s3 put-bucket-versioning --bucket seedoc-local --versioning-configuration Status=Enabled
+        echo "bucket seedoc-local ready"
+    restart: "no"
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  api:
+    profiles: ["app"]
+    build: ../apps/api
+    image: seedoc-api
+    env_file: ../.env
+    environment: *api-env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  worker:
+    # Enabled with the Procrastinate setup (ROADMAP M1-A6).
+    profiles: ["worker"]
+    image: seedoc-api
+    command: ["procrastinate", "--app=seedoc.jobs.app", "worker"]
+    env_file: ../.env
+    environment: *api-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    profiles: ["app"]
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+    image: seedoc-web
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+
+volumes:
+  postgres-data:
+  s3-data:
