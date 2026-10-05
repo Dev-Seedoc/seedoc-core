@@ -6,7 +6,7 @@ the delivered documents and cites the page.
 **Status:** rebuild from scratch. Plan started Monday 5 October 2026; pilot deadline **Friday 29 January 2027**.
 
 > This README summarises the full technical contract: `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/NAMING.md`,
-> `docs/API.md`, `docs/DATA_MODEL.md`, `docs/BUSINESS_RULES.md`, `docs/WORK_SPLIT.md`, `docs/ROADMAP.md`,
+> `docs/API.md`, `docs/DATA_MODEL.md`, `docs/BUSINESS_RULES.md`, `docs/WORK_PLAN.md`, `docs/ROADMAP.md`,
 > `docs/HANDOVER.md` and `.env.example`. Where it differs from those files, they take precedence.
 
 **New developer?** Go to [14. Local development](#14-local-development): what to install, how to set up, and how
@@ -463,6 +463,7 @@ python -c "import os,base64;print(base64.b64encode(os.urandom(32)).decode())"
 | CI: lint, type-check, tests, image builds (`.github/workflows/ci.yml`) | done (M0-A3) |
 | FastAPI skeleton: settings, all error codes, `RequestContext`, role/fresh-auth checks, `GET /api/v1/health` | done (M0-A4) |
 | Web skeleton: Vite, React 19, TS strict, Tailwind 4, shadcn base, React Router, TanStack Query, Vitest | done (M0-B1) |
+| `.github/CODEOWNERS`, PR template, "Task brief" issue template | done |
 | Migration `0001_identity`, auth, staff, seed | **next** (M0-A5 … M0-A10, M0-B2 …) — see [Roadmap](#18-roadmap) |
 
 ### 14.2 Install these first
@@ -489,7 +490,7 @@ cd seedoc-core
 ```
 
 **2. Get the contract docs.** `docs/`, `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md` and
-`.env.example` are **not in Git** (see `.gitignore`); get them from Dev A / the shared drive and put them in the repo
+`.env.example` are **not in Git** (see `.gitignore`); get them from Raven / the shared drive and put them in the repo
 root. Read them in the order of `docs/HANDOVER.md` §3 before writing code, and make your AI assistant load
 `AGENTS.md` (§3 above).
 
@@ -655,11 +656,16 @@ Tests run against real Postgres (testcontainers), never SQLite.
 
 ## 17. Team, work split and workflow
 
+The detailed task list, due dates and handovers are in `docs/WORK_PLAN.md`.
+
 | Area | Owner |
 | --- | --- |
-| Infra, CI, Docker, Caddy, deploy; DB foundation; auth, staff, TOTP; documents; AI pipeline; domains | **Dev A** |
-| App shell, UI kit, i18n, API client; products; customers, deliveries, publish, diff; portal, QR, PIN; operators; export, usage | **Dev B** |
+| Critical work: migrations, tenant isolation (RLS), immutability, auth/sessions/CSRF, staff/TOTP, uploads and file checks, release freezing and publish, portal API, PIN, domains/TLS, AI pipeline, operators and grants, exports, metering, infra, production | **Raven** (`@Ravencrest-01`) — also reviews every PR |
+| All screens, UI kit, i18n and German texts, API client; supervised backend features (spaces/folders, language variants, products/customers/deliveries/machines CRUD, dashboard, audit list, QR label layout, language matrix, diff, usage, lists); mail templates; sample data; AI eval; E2E tests | **Jamshid** |
 | Product scope, priorities, wording, accounts, customer contact | **Founder** |
+
+Changes under the paths in `.github/CODEOWNERS` (migrations, security, auth, portal, PIN, releases, AI, jobs,
+storage, tests, infra) always need Raven's approval.
 
 - **Contract first:** a new endpoint, column or error code goes into `docs/` in a small PR before it is implemented.
 - **Shared files** (`docs/*`, `AGENTS.md`, `errors.py`, `deps.py`, `audit.py`, `usage.py`, `client.ts`,
