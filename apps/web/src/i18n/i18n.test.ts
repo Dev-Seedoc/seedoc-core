@@ -160,4 +160,9 @@ describe("i18n setup", () => {
       expect(en.common.language).toHaveProperty(lang);
     }
   });
+
+  it("contains common.appName", () => {
+    expect(de.common.appName).toBe("SeeDoc");
+    expect(en.common.appName).toBe("SeeDoc");
+  });
 });

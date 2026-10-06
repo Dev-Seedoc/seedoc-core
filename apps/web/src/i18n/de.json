@@ -1,5 +1,6 @@
 {
   "common": {
+    "appName": "SeeDoc",
     "actions": {
       "save": "Speichern",
       "cancel": "Abbrechen",
