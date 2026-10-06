@@ -15,7 +15,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from seedoc.config import get_settings
 from seedoc.db.engine import dispose_engines
 from seedoc.errors import AppError, ErrorCode
-from seedoc.routers import health
+from seedoc.routers import auth, health
 
 API_PREFIX = "/api/v1"
 REQUEST_ID_HEADER = "X-Request-ID"
@@ -116,4 +116,5 @@ def create_app() -> FastAPI:
     app.add_exception_handler(Exception, _handle_unexpected_error)
 
     app.include_router(health.router, prefix=API_PREFIX)
+    app.include_router(auth.router, prefix=API_PREFIX)
     return app

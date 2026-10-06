@@ -1,6 +1,11 @@
 """Declarative base with the constraint naming convention from docs/DATA_MODEL.md §6."""
 
-from sqlalchemy import MetaData
+from datetime import datetime
+from enum import Enum
+from typing import Any, ClassVar
+
+from sqlalchemy import DateTime, MetaData, Text
+from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy.orm import DeclarativeBase
 
 NAMING_CONVENTION = {
@@ -14,5 +19,16 @@ NAMING_CONVENTION = {
 metadata = MetaData(naming_convention=NAMING_CONVENTION)
 
 
+def pg_enum(enum_type: type[Enum], name: str, **kwargs: Any) -> ENUM:
+    def _values(e: type[Enum]) -> list[str]:
+        return [str(m.value) for m in e]
+
+    return ENUM(enum_type, name=name, values_callable=_values, **kwargs)
+
+
 class Base(DeclarativeBase):
     metadata = metadata
+    type_annotation_map: ClassVar[dict[Any, Any]] = {
+        datetime: DateTime(timezone=True),
+        str: Text,
+    }
