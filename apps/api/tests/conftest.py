@@ -4,6 +4,7 @@ import os
 from collections.abc import AsyncIterator, Iterator
 from pathlib import Path
 
+import alembic.config
 import psycopg
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -77,6 +78,11 @@ def postgres() -> Iterator[dict[str, str]]:
         previous = {key: os.environ[key] for key in urls}
         os.environ.update(urls)
         _reset_caches()
+
+        # Round trip before any connection exists: proves every downgrade works, then leaves the schema at head.
+        for step in ("head", "base", "head"):
+            alembic.config.main(argv=["--raiseerr", "upgrade" if step == "head" else "downgrade", step])
+
         yield urls
         os.environ.update(previous)
         _reset_caches()
