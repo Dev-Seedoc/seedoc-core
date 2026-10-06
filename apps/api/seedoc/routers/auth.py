@@ -11,7 +11,7 @@ from seedoc.schemas.auth import (
     PasswordResetConfirmRequest,
     PasswordResetRequest,
     ReauthenticateRequest,
-    TotpSetupResponse,
+    TotpSetupRead,
     VerifyTotpRequest,
 )
 
@@ -62,8 +62,8 @@ async def accept_invitation(token: str, body: AcceptInvitationRequest) -> MeRead
     _not_implemented()
 
 
-@router.post("/totp/setup", response_model=TotpSetupResponse)
-async def setup_totp() -> TotpSetupResponse:
+@router.post("/totp/setup", response_model=TotpSetupRead)
+async def setup_totp() -> TotpSetupRead:
     _not_implemented()
 
 

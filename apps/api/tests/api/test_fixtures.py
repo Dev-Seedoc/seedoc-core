@@ -1,48 +1,48 @@
-# pyright: reportUnknownParameterType=false, reportUnknownVariableType=false, reportUnknownArgumentType=false, reportUnknownMemberType=false, reportMissingParameterType=false, reportAttributeAccessIssue=false
-import pytest
-from httpx import AsyncClient
+"""Smoke tests for the shared fixtures in `tests/conftest.py`, so a broken fixture fails here and not in 50 places."""
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from seedoc.models.tenants import MemberRole, Tenant
-from seedoc.models.users import User
-
-pytestmark = pytest.mark.usefixtures("postgres")
-
-
-@pytest.mark.asyncio
-async def test_make_factories_and_admin_db(admin_db: AsyncSession, make_tenant, make_user, make_member) -> None:
-    """Test that the factories properly insert into the database bypassing RLS."""
-    tenant = await make_tenant(name="Fixture Tenant", slug="fixture-tenant")
-    user = await make_user(email="fixture@example.com")
-    _member = await make_member(tenant, user, MemberRole.ADMIN)
-
-    # Verify admin_db can read them (bypassing RLS since no tenant is set)
-    result = await admin_db.execute(select(Tenant).where(Tenant.id == tenant.id))
-    fetched_tenant = result.scalar_one_or_none()
-    assert fetched_tenant is not None
-    assert fetched_tenant.name == "Fixture Tenant"
+from seedoc.db.engine import set_tenant
+from seedoc.models import MemberRole, Tenant, TenantMember, UserSession
+from seedoc.security.sessions import SESSION_COOKIE
+from seedoc.security.tokens import hash_token
+from tests.conftest import ClientAs, MakeMember, MakeTenant, MakeUser, MemberClient
 
 
-@pytest.mark.asyncio
-async def test_client_as_and_db(client_as, client_other_tenant: AsyncClient, db: AsyncSession) -> None:
-    """Test that client_as sets up a client with tenant and user attached."""
+async def test_factories_persist_rows(
+    admin_db: AsyncSession, make_tenant: MakeTenant, make_user: MakeUser, make_member: MakeMember
+) -> None:
+    tenant = await make_tenant(name="Fixture GmbH")
+    user = await make_user()
+    await make_member(tenant, user, MemberRole.ADMIN)
+
+    role = await admin_db.scalar(
+        select(TenantMember.role).where(TenantMember.tenant_id == tenant.id, TenantMember.user_id == user.id)
+    )
+    assert role == MemberRole.ADMIN
+    assert await admin_db.scalar(select(Tenant.name).where(Tenant.id == tenant.id)) == "Fixture GmbH"
+
+
+async def test_client_as_logs_in_with_api_token_hashing(client_as: ClientAs, admin_db: AsyncSession) -> None:
     client = await client_as(MemberRole.OWNER)
 
-    # Assert attachments are present
-    assert hasattr(client, "tenant")
-    assert hasattr(client, "user")
-    assert isinstance(client.tenant, Tenant)
-    assert isinstance(client.user, User)
+    assert client.member.role == MemberRole.OWNER
+    assert client.http.headers["Origin"] == "http://localhost:5173"
+    token = client.http.cookies[SESSION_COOKIE]
+    user_id = await admin_db.scalar(select(UserSession.user_id).where(UserSession.token_hash == hash_token(token)))
+    assert user_id == client.user.id
 
-    # Assert other_tenant is fully separate
-    assert hasattr(client_other_tenant, "tenant")
+
+async def test_client_other_tenant_is_separate(client_as: ClientAs, client_other_tenant: MemberClient) -> None:
+    client = await client_as(MemberRole.OWNER)
     assert client.tenant.id != client_other_tenant.tenant.id
+    assert client_other_tenant.member.role == MemberRole.EDITOR
 
-    # Try setting tenant in 'db' to test it doesn't crash (actual queries verified in isolation tests)
-    from seedoc.db.engine import set_tenant
 
-    await set_tenant(db, client.tenant.id)
-
-    result = await db.execute(select(Tenant).where(Tenant.id == client.tenant.id))
-    assert result.scalar_one_or_none() is not None
+async def test_db_is_rls_scoped(client_as: ClientAs, client_other_tenant: MemberClient, db: AsyncSession) -> None:
+    client = await client_as(MemberRole.OWNER)
+    async with db.begin():
+        await set_tenant(db, client.tenant.id)
+        visible = (await db.scalars(select(Tenant.id))).all()
+    assert visible == [client.tenant.id]

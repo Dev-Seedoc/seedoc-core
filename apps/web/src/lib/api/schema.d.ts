@@ -246,7 +246,7 @@ export interface components {
         };
         /** MeRead */
         MeRead: {
-            user: components["schemas"]["UserProfile"];
+            user: components["schemas"]["UserRead"];
             /** Memberships */
             memberships: components["schemas"]["TenantMembershipRead"][];
             /** Operator Orgs */
@@ -270,9 +270,13 @@ export interface components {
             operator_org_id: string;
             /** Name */
             name: string;
-            /** Role */
-            role: string;
+            role: components["schemas"]["OperatorRole"];
         };
+        /**
+         * OperatorRole
+         * @enum {string}
+         */
+        OperatorRole: "admin" | "member";
         /** PasswordResetConfirmRequest */
         PasswordResetConfirmRequest: {
             /** Token */
@@ -301,13 +305,13 @@ export interface components {
             tenant_name: string;
             role: components["schemas"]["MemberRole"];
         };
-        /** TotpSetupResponse */
-        TotpSetupResponse: {
+        /** TotpSetupRead */
+        TotpSetupRead: {
             /** Otpauth Uri */
             otpauth_uri: string;
         };
-        /** UserProfile */
-        UserProfile: {
+        /** UserRead */
+        UserRead: {
             /**
              * Id
              * Format: uuid
@@ -612,7 +616,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TotpSetupResponse"];
+                    "application/json": components["schemas"]["TotpSetupRead"];
                 };
             };
         };

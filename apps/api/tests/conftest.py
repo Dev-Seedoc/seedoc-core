@@ -1,18 +1,18 @@
-# pyright: reportUnknownParameterType=false, reportUnknownVariableType=false, reportUnknownArgumentType=false, reportUnknownMemberType=false, reportMissingParameterType=false, reportAttributeAccessIssue=false
 """Shared fixtures. Tests that touch the database run against a real Postgres (testcontainers), never SQLite."""
 
-import hashlib
 import os
-import secrets
 from collections.abc import AsyncIterator, Iterator
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Protocol
 from uuid import uuid4
 
 import alembic.config
 import psycopg
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Settings are read from the environment, so test defaults must exist before seedoc is imported.
 _TEST_ENV = {
@@ -32,13 +32,13 @@ _TEST_ENV = {
 for _key, _value in _TEST_ENV.items():
     os.environ[_key] = _value
 
-from sqlalchemy.ext.asyncio import AsyncSession  # noqa: E402
-
 from seedoc.config import get_settings  # noqa: E402
 from seedoc.db import engine as db_engine  # noqa: E402
 from seedoc.main import create_app  # noqa: E402
 from seedoc.models.tenants import MemberRole, Tenant, TenantMember, TenantStatus  # noqa: E402
 from seedoc.models.users import User, UserSession  # noqa: E402
+from seedoc.security.sessions import SESSION_COOKIE  # noqa: E402
+from seedoc.security.tokens import hash_token, new_token  # noqa: E402
 
 ROLES_SQL = Path(__file__).resolve().parents[3] / "infra" / "postgres" / "init" / "01-roles.sql"
 POSTGRES_IMAGE = "pgvector/pgvector:pg16"
@@ -117,110 +117,138 @@ async def client() -> AsyncIterator[AsyncClient]:
 
 
 @pytest.fixture
-async def db() -> AsyncIterator[AsyncSession]:
-    """Database session authenticated as the seedoc_app role.
-    Use this for testing services and business logic with RLS applied.
-    """
-    factory = db_engine.get_app_sessionmaker()
-    async with factory() as session:
+async def db(postgres: dict[str, str]) -> AsyncIterator[AsyncSession]:
+    """Session as `seedoc_app` (RLS enforced) — the role the API uses. Call `set_tenant` inside a transaction."""
+    async with db_engine.get_app_sessionmaker()() as session:
         yield session
 
 
 @pytest.fixture
-async def admin_db() -> AsyncIterator[AsyncSession]:
-    """Database session authenticated as the seedoc_admin role (BYPASSRLS).
-    Use this for staff routes, jobs, or when a factory needs to bypass RLS.
-    """
-    factory = db_engine.get_admin_sessionmaker()
-    async with factory() as session:
+async def admin_db(postgres: dict[str, str]) -> AsyncIterator[AsyncSession]:
+    """Session as `seedoc_admin` (BYPASSRLS). For seeding test data and for staff/job code — never for /app code."""
+    async with db_engine.get_admin_sessionmaker()() as session:
         yield session
 
 
+class MakeTenant(Protocol):
+    async def __call__(
+        self, name: str = "Acme GmbH", slug: str | None = None, status: TenantStatus = TenantStatus.ACTIVE
+    ) -> Tenant: ...
+
+
+class MakeUser(Protocol):
+    async def __call__(
+        self, email: str | None = None, full_name: str = "Max Mustermann", is_staff: bool = False
+    ) -> User: ...
+
+
+class MakeMember(Protocol):
+    async def __call__(self, tenant: Tenant, user: User, role: MemberRole) -> TenantMember: ...
+
+
+@dataclass(frozen=True)
+class MemberClient:
+    """An HTTP client logged in as `user`, who is a member of `tenant` with `member.role`."""
+
+    http: AsyncClient
+    tenant: Tenant
+    user: User
+    member: TenantMember
+
+
+class ClientAs(Protocol):
+    async def __call__(self, role: MemberRole) -> MemberClient: ...
+
+
 @pytest.fixture
-def make_tenant(admin_db: AsyncSession):
-    """Factory to create and persist a Tenant in the database. Returns a coroutine."""
+def make_tenant(admin_db: AsyncSession) -> MakeTenant:
+    """`await make_tenant(...)` → a committed `Tenant` with a unique slug (written via the admin role)."""
 
     async def factory(
-        name: str = "Acme Corp", slug: str | None = None, status: TenantStatus = TenantStatus.ACTIVE
+        name: str = "Acme GmbH", slug: str | None = None, status: TenantStatus = TenantStatus.ACTIVE
     ) -> Tenant:
-        slug = slug or f"acme-{uuid4().hex[:8]}"
-        t = Tenant(name=name, slug=slug, status=status)
-        admin_db.add(t)
+        tenant = Tenant(name=name, slug=slug or f"acme-{uuid4().hex[:8]}", status=status)
+        admin_db.add(tenant)
         await admin_db.commit()
-        await admin_db.refresh(t)
-        return t
+        await admin_db.refresh(tenant)
+        return tenant
 
     return factory
 
 
 @pytest.fixture
-def make_user(admin_db: AsyncSession):
-    """Factory to create and persist a User in the database. Returns a coroutine."""
+def make_user(admin_db: AsyncSession) -> MakeUser:
+    """`await make_user(...)` → a committed `User` with a unique e-mail and no usable password."""
 
-    async def factory(email: str | None = None, full_name: str = "John Doe", is_staff: bool = False) -> User:
-        email = email or f"user-{uuid4().hex[:8]}@example.com"
-        u = User(email=email, full_name=full_name, is_staff=is_staff, password_hash="dummy")
-        admin_db.add(u)
+    async def factory(email: str | None = None, full_name: str = "Max Mustermann", is_staff: bool = False) -> User:
+        user = User(email=email or f"user-{uuid4().hex[:8]}@example.com", full_name=full_name, is_staff=is_staff)
+        admin_db.add(user)
         await admin_db.commit()
-        await admin_db.refresh(u)
-        return u
+        await admin_db.refresh(user)
+        return user
 
     return factory
 
 
 @pytest.fixture
-def make_member(admin_db: AsyncSession):
-    """Factory to create a TenantMember linking a User and a Tenant with a given role. Returns a coroutine."""
+def make_member(admin_db: AsyncSession) -> MakeMember:
+    """`await make_member(tenant, user, role)` → a committed `TenantMember`."""
 
     async def factory(tenant: Tenant, user: User, role: MemberRole) -> TenantMember:
-        tm = TenantMember(tenant_id=tenant.id, user_id=user.id, role=role)
-        admin_db.add(tm)
+        member = TenantMember(tenant_id=tenant.id, user_id=user.id, role=role)
+        admin_db.add(member)
         await admin_db.commit()
-        await admin_db.refresh(tm)
-        return tm
+        await admin_db.refresh(member)
+        return member
 
     return factory
 
 
 @pytest.fixture
-def client_as(admin_db: AsyncSession, make_tenant, make_user, make_member):
-    """Factory to get an authenticated AsyncClient for a member with a specific role.
-    It provisions a tenant, user, membership, and a valid session.
+async def client_as(
+    admin_db: AsyncSession, make_tenant: MakeTenant, make_user: MakeUser, make_member: MakeMember
+) -> AsyncIterator[ClientAs]:
+    """`await client_as(role)` → a `MemberClient` logged in as a fresh member of a fresh tenant.
 
-    The returned client will have `client.tenant` and `client.user` available.
+    The session row is created with `security.tokens` (the same hashing the API uses) and the client sends the
+    `Origin` header the CSRF check expects. All clients are closed after the test.
     """
+    clients: list[AsyncClient] = []
+    app = create_app()
+    origin = get_settings().app_url
 
-    async def factory(role: MemberRole) -> AsyncClient:
+    async def factory(role: MemberRole) -> MemberClient:
         tenant = await make_tenant()
         user = await make_user()
-        await make_member(tenant, user, role)
+        member = await make_member(tenant, user, role)
 
-        token = secrets.token_urlsafe(32)
-        token_hash = hashlib.sha256(token.encode()).digest()
-
-        # Valid session expiring in 1 day
-        expires_at = datetime.now(UTC) + timedelta(days=1)
-        session = UserSession(user_id=user.id, token_hash=token_hash, expires_at=expires_at)
-        admin_db.add(session)
+        token = new_token()
+        admin_db.add(
+            UserSession(
+                user_id=user.id,
+                token_hash=hash_token(token),
+                expires_at=datetime.now(UTC) + timedelta(days=1),
+                fresh_auth_at=datetime.now(UTC),
+            )
+        )
         await admin_db.commit()
 
-        app = create_app()
-        transport = ASGITransport(app=app, raise_app_exceptions=False)
-        http = AsyncClient(transport=transport, base_url="http://localhost")
-        http.cookies.set("seedoc_session", token)
+        http = AsyncClient(
+            transport=ASGITransport(app=app, raise_app_exceptions=False),
+            base_url="http://localhost",
+            headers={"Origin": origin},
+            cookies={SESSION_COOKIE: token},
+        )
+        clients.append(http)
+        return MemberClient(http=http, tenant=tenant, user=user, member=member)
 
-        # Attach entities to the client for easy access in tests
-        http.tenant = tenant  # type: ignore
-        http.user = user  # type: ignore
+    yield factory
 
-        return http
-
-    return factory
+    for http in clients:
+        await http.aclose()
 
 
 @pytest.fixture
-async def client_other_tenant(client_as) -> AsyncClient:
-    """Fixture to get an authenticated AsyncClient for a DIFFERENT tenant than the primary one.
-    Useful for testing tenant isolation (e.g., verifying 404s on another tenant's data).
-    """
+async def client_other_tenant(client_as: ClientAs) -> MemberClient:
+    """An editor of a *different* tenant — use it to prove another tenant's ids return 404."""
     return await client_as(MemberRole.EDITOR)

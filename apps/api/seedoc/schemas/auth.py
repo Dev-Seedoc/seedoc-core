@@ -1,16 +1,25 @@
+"""Request/response schemas for `/auth` (API.md §2)."""
+
+from typing import Annotated
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from seedoc.models.operators import OperatorRole
 from seedoc.models.tenants import InvitationKind, MemberRole
+
+# BUSINESS_RULES §2: 12 to 128 characters, no other composition rules.
+NewPassword = Annotated[str, Field(min_length=12, max_length=128)]
+# Existing passwords are only length-capped, so a huge body is rejected before Argon2 runs.
+SubmittedPassword = Annotated[str, Field(min_length=1, max_length=128)]
 
 
 class LoginRequest(BaseModel):
     email: str
-    password: str
+    password: SubmittedPassword
 
 
-class UserProfile(BaseModel):
+class UserRead(BaseModel):
     id: UUID
     email: str
     full_name: str | None = None
@@ -27,11 +36,11 @@ class TenantMembershipRead(BaseModel):
 class OperatorOrgMembershipRead(BaseModel):
     operator_org_id: UUID
     name: str
-    role: str
+    role: OperatorRole
 
 
 class MeRead(BaseModel):
-    user: UserProfile
+    user: UserRead
     memberships: list[TenantMembershipRead]
     operator_orgs: list[OperatorOrgMembershipRead]
     is_staff: bool
@@ -39,7 +48,7 @@ class MeRead(BaseModel):
 
 
 class ReauthenticateRequest(BaseModel):
-    password: str
+    password: SubmittedPassword
 
 
 class PasswordResetRequest(BaseModel):
@@ -48,7 +57,7 @@ class PasswordResetRequest(BaseModel):
 
 class PasswordResetConfirmRequest(BaseModel):
     token: str
-    password: str
+    password: NewPassword
 
 
 class InvitationPreview(BaseModel):
@@ -60,11 +69,11 @@ class InvitationPreview(BaseModel):
 
 
 class AcceptInvitationRequest(BaseModel):
-    password: str | None = None
+    password: NewPassword | None = None  # required only when the invitee has no account yet
     full_name: str | None = None
 
 
-class TotpSetupResponse(BaseModel):
+class TotpSetupRead(BaseModel):
     otpauth_uri: str
 
 
