@@ -5,7 +5,9 @@
  * and dot thousands separator.
  */
 
-export const LOCALE_DE = "de-DE";
+import { LOCALE_DE } from "./formatLocale";
+
+export { LOCALE_DE };
 
 const BYTE_UNITS = ["B", "KB", "MB", "GB", "TB", "PB"] as const;
 
@@ -19,29 +21,32 @@ export function formatNumber(value: number, options?: Intl.NumberFormatOptions):
 
 /**
  * Formats a byte size with decimal comma and appropriate binary unit (B, KB, MB, GB, ...).
+ * Values below 1024 are always shown in B. Fractional input is rounded to whole bytes.
+ * NaN, Infinity and negative numbers return "–".
+ *
  * Examples:
  *   0 -> "0 B"
+ *   0.5 -> "1 B"
  *   1024 -> "1 KB"
  *   1536 -> "1,5 KB"
  *   20971520 -> "20 MB"
+ *   -1 -> "–"
  */
 export function formatBytes(bytes: number, decimals = 1): string {
-  if (bytes < 0) {
-    throw new RangeError("Byte value cannot be negative");
+  if (!Number.isFinite(bytes) || bytes < 0) {
+    return "–";
   }
-  if (bytes === 0) {
-    return "0 B";
+
+  const roundedBytes = Math.round(bytes) || 0;
+  if (roundedBytes < 1024) {
+    return `${formatNumber(roundedBytes)} B`;
   }
 
   const k = 1024;
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  const i = Math.floor(Math.log(roundedBytes) / Math.log(k));
   const unitIndex = Math.min(i, BYTE_UNITS.length - 1);
   const unit = BYTE_UNITS[unitIndex] ?? "B";
 
-  if (unitIndex === 0) {
-    return `${formatNumber(bytes, { maximumFractionDigits: 0 })} ${unit}`;
-  }
-
-  const value = bytes / Math.pow(k, unitIndex);
+  const value = roundedBytes / Math.pow(k, unitIndex);
   return `${formatNumber(value, { maximumFractionDigits: decimals })} ${unit}`;
 }

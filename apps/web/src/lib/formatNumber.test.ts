@@ -29,6 +29,10 @@ describe("formatBytes", () => {
     expect(formatBytes(500)).toBe("500 B");
   });
 
+  it("rounds fractional byte input below 1024 to whole bytes", () => {
+    expect(formatBytes(0.5)).toBe("1 B");
+  });
+
   it("formats kilobyte amounts with German decimal comma", () => {
     expect(formatBytes(1024)).toBe("1 KB");
     expect(formatBytes(1536)).toBe("1,5 KB");
@@ -40,7 +44,9 @@ describe("formatBytes", () => {
     expect(formatBytes(1073741824 * 1.5)).toBe("1,5 GB");
   });
 
-  it("throws RangeError on negative input", () => {
-    expect(() => formatBytes(-1)).toThrow(RangeError);
+  it("returns dash for NaN, Infinity and negative numbers", () => {
+    expect(formatBytes(-1)).toBe("–");
+    expect(formatBytes(NaN)).toBe("–");
+    expect(formatBytes(Infinity)).toBe("–");
   });
 });
