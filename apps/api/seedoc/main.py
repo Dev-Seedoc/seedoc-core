@@ -16,6 +16,7 @@ from seedoc.config import get_settings
 from seedoc.db.engine import dispose_engines
 from seedoc.errors import AppError, ErrorCode
 from seedoc.routers import auth, health
+from seedoc.security.csrf import csrf_middleware
 
 API_PREFIX = "/api/v1"
 REQUEST_ID_HEADER = "X-Request-ID"
@@ -97,6 +98,9 @@ def create_app() -> FastAPI:
         lifespan=_lifespan,
     )
 
+    # Registered first so it runs inside bind_request_id: CSRF rejections still carry X-Request-ID.
+    app.middleware("http")(csrf_middleware)
+
     @app.middleware("http")
     async def bind_request_id(  # pyright: ignore[reportUnusedFunction]
         request: Request, call_next: Callable[[Request], Awaitable[Response]]
@@ -108,10 +112,6 @@ def create_app() -> FastAPI:
         response = await call_next(request)
         response.headers[REQUEST_ID_HEADER] = request_id
         return response
-
-    from seedoc.security.csrf import csrf_middleware
-
-    app.middleware("http")(csrf_middleware)
 
     app.add_exception_handler(AppError, _handle_app_error)
     app.add_exception_handler(RequestValidationError, _handle_validation_error)

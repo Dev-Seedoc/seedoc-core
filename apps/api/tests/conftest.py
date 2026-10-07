@@ -37,6 +37,7 @@ from seedoc.db import engine as db_engine  # noqa: E402
 from seedoc.main import create_app  # noqa: E402
 from seedoc.models.tenants import MemberRole, Tenant, TenantMember, TenantStatus  # noqa: E402
 from seedoc.models.users import User, UserSession  # noqa: E402
+from seedoc.security.rate_limit import reset_rate_limits  # noqa: E402
 from seedoc.security.sessions import SESSION_COOKIE  # noqa: E402
 from seedoc.security.tokens import hash_token, new_token  # noqa: E402
 
@@ -95,6 +96,14 @@ def postgres() -> Iterator[dict[str, str]]:
         yield urls
         os.environ.update(previous)
         _reset_caches()
+
+
+@pytest.fixture(autouse=True)
+def reset_login_throttle() -> Iterator[None]:
+    """The login throttle is process memory; without this, failures in one test would lock out the next."""
+    reset_rate_limits()
+    yield
+    reset_rate_limits()
 
 
 @pytest.fixture

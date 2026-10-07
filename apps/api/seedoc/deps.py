@@ -7,13 +7,17 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import Depends, Request
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from seedoc.config import get_settings
 from seedoc.db.engine import get_admin_sessionmaker, get_app_sessionmaker
 from seedoc.errors import AppError, ErrorCode
+from seedoc.models.operators import OperatorMember
 from seedoc.models.tenants import MemberRole
+from seedoc.models.users import User
 from seedoc.security.crypto import get_ip_hash
+from seedoc.security.sessions import SESSION_COOKIE, get_and_touch_session
 
 FRESH_AUTH_TTL = timedelta(minutes=30)
 _ROLE_RANK = {MemberRole.EDITOR: 1, MemberRole.ADMIN: 2, MemberRole.OWNER: 3}
@@ -45,52 +49,43 @@ async def get_admin_db() -> AsyncIterator[AsyncSession]:
         yield session
 
 
-async def get_ctx(request: Request, db: AsyncSession = Depends(get_db)) -> RequestContext:  # noqa: B008
-    import contextlib
+async def get_ctx(request: Request) -> RequestContext:
+    """Build the request context from the `seedoc_session` cookie and the `{tenant_id}` path parameter.
 
-    from sqlalchemy import select
-
-    from seedoc.models.operators import OperatorMember
-    from seedoc.models.tenants import TenantMember
-    from seedoc.models.users import User
-    from seedoc.security.sessions import SESSION_COOKIE, get_and_touch_session
-
+    Runs in its own short transaction (not the request's `DbSession`), so the session touch is committed and the
+    services can still open their own transaction on `DbSession`.
+    """
     client_ip = request.client.host if request.client else None
     ip_hash = get_ip_hash(client_ip, get_settings().ip_hash_pepper) if client_ip else None
+    tenant_id = _parse_uuid(request.path_params.get("tenant_id"))
 
-    user_id = None
-    session_id = None
-    fresh_auth_at = None
+    user_id: UUID | None = None
+    session_id: UUID | None = None
+    fresh_auth_at: datetime | None = None
     is_staff = False
-    role = None
-    operator_org_ids = ()
-
-    tenant_id_str = request.path_params.get("tenant_id")
-    tenant_id = None
-    if tenant_id_str:
-        with contextlib.suppress(ValueError):
-            tenant_id = UUID(tenant_id_str)
+    role: MemberRole | None = None
+    operator_org_ids: tuple[UUID, ...] = ()
 
     token = request.cookies.get(SESSION_COOKIE)
     if token:
-        session_data = await get_and_touch_session(db, token)
-        if session_data:
-            user_id = session_data["user_id"]
-            session_id = session_data["session_id"]
-            fresh_auth_at = session_data["fresh_auth_at"]
-
-            stmt = select(User.is_staff).where(User.id == user_id)
-            is_staff = await db.scalar(stmt) or False
-
-            if tenant_id:
-                stmt_role = select(TenantMember.role).where(
-                    TenantMember.user_id == user_id, TenantMember.tenant_id == tenant_id
+        async with get_app_sessionmaker()() as db, db.begin():
+            session = await get_and_touch_session(db, token)
+            if session is not None:
+                user_id = session.user_id
+                session_id = session.id
+                fresh_auth_at = session.fresh_auth_at
+                is_staff = bool(await db.scalar(select(User.is_staff).where(User.id == user_id)))
+                if tenant_id is not None:
+                    # member_tenants() is SECURITY DEFINER: tenant_members is under RLS and no tenant is set yet.
+                    role_value = await db.scalar(
+                        text("select role from member_tenants(:user_id) where tenant_id = :tenant_id"),
+                        {"user_id": user_id, "tenant_id": tenant_id},
+                    )
+                    role = MemberRole(role_value) if role_value is not None else None
+                org_ids = await db.scalars(
+                    select(OperatorMember.operator_org_id).where(OperatorMember.user_id == user_id)
                 )
-                role = await db.scalar(stmt_role)
-
-            stmt_ops = select(OperatorMember.operator_org_id).where(OperatorMember.user_id == user_id)
-            result = await db.execute(stmt_ops)
-            operator_org_ids = tuple(row[0] for row in result.all())
+                operator_org_ids = tuple(org_ids)
 
     return RequestContext(
         user_id=user_id,
@@ -104,6 +99,15 @@ async def get_ctx(request: Request, db: AsyncSession = Depends(get_db)) -> Reque
         ip_hash=ip_hash,
         request_id=request.state.request_id,
     )
+
+
+def _parse_uuid(value: object) -> UUID | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        return UUID(value)
+    except ValueError:
+        return None
 
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]

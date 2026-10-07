@@ -1,71 +1,81 @@
-"""Rate limiting (throttling) for auth and portal."""
+"""Failed-login throttling (BUSINESS_RULES §2).
 
+10 failed attempts per key (e-mail or IP hash) within 15 minutes lock that key for 15 minutes → `429 rate_limited`.
+
+State lives in this process's memory. That is enough for the pilot (one API process); with several API processes or
+replicas each process counts on its own, so move this to Postgres before scaling out.
+"""
+
+import math
 import time
-from collections import defaultdict
+from collections import deque
 from dataclasses import dataclass, field
 
 from seedoc.errors import AppError, ErrorCode
 
-
-@dataclass
-class RateLimitWindow:
-    count: int = 0
-    first_attempt_at: float = field(default_factory=time.monotonic)
-
-
-_failed_logins_by_email: dict[str, RateLimitWindow] = defaultdict(RateLimitWindow)
-_failed_logins_by_ip_hash: dict[str, RateLimitWindow] = defaultdict(RateLimitWindow)
-
 LOGIN_MAX_FAILURES = 10
 LOGIN_WINDOW_SECONDS = 15 * 60
+LOGIN_LOCK_SECONDS = 15 * 60
+_PRUNE_THRESHOLD = 10_000
 
 
-def _check_and_record(store: dict[str, RateLimitWindow], key: str, max_failures: int, window_seconds: int) -> None:
+@dataclass
+class _KeyState:
+    failures: deque[float] = field(default_factory=deque[float])
+    locked_until: float = 0.0
+
+
+_states: dict[str, _KeyState] = {}
+
+
+def _keys(subject: str, ip_hash: str | None) -> list[str]:
+    keys = [f"subject:{subject.lower()}"]
+    if ip_hash:
+        keys.append(f"ip:{ip_hash}")
+    return keys
+
+
+def _prune(now: float) -> None:
+    """Drop keys that are neither locked nor have failures inside the window (bounds memory)."""
+    stale = [
+        key
+        for key, state in _states.items()
+        if state.locked_until <= now and (not state.failures or now - state.failures[-1] > LOGIN_WINDOW_SECONDS)
+    ]
+    for key in stale:
+        del _states[key]
+
+
+def check_login_rate_limit(subject: str, ip_hash: str | None) -> None:
+    """Raise `429 rate_limited` if the subject (e-mail, or e.g. `reauth:<user_id>`) or the IP hash is locked."""
     now = time.monotonic()
-    window = store[key]
-
-    if now - window.first_attempt_at > window_seconds:
-        window.count = 1
-        window.first_attempt_at = now
-    else:
-        window.count += 1
-
-    if window.count > max_failures:
-        retry_after = int(window_seconds - (now - window.first_attempt_at))
-        raise AppError(
-            ErrorCode.RATE_LIMITED, "Too many failed login attempts.", details={"retry_after_seconds": retry_after}
-        )
+    for key in _keys(subject, ip_hash):
+        state = _states.get(key)
+        if state and state.locked_until > now:
+            raise AppError(ErrorCode.RATE_LIMITED, details={"retry_after_seconds": math.ceil(state.locked_until - now)})
 
 
-def record_failed_login(email: str, ip_hash: str | None) -> None:
-    """Record a failed login attempt for the given email and IP hash."""
-    _check_and_record(_failed_logins_by_email, email.lower(), LOGIN_MAX_FAILURES, LOGIN_WINDOW_SECONDS)
-    if ip_hash:
-        _check_and_record(_failed_logins_by_ip_hash, ip_hash, LOGIN_MAX_FAILURES, LOGIN_WINDOW_SECONDS)
-
-
-def check_login_rate_limit(email: str, ip_hash: str | None) -> None:
-    """Check if the rate limit is currently exceeded (without recording a new attempt)."""
+def record_failed_login(subject: str, ip_hash: str | None) -> None:
+    """Count one failure for the subject and the IP hash; the 10th failure in the window starts the lock."""
     now = time.monotonic()
-
-    window = _failed_logins_by_email.get(email.lower())
-    if window and now - window.first_attempt_at <= LOGIN_WINDOW_SECONDS and window.count >= LOGIN_MAX_FAILURES:
-        retry_after = int(LOGIN_WINDOW_SECONDS - (now - window.first_attempt_at))
-        raise AppError(
-            ErrorCode.RATE_LIMITED, "Too many failed login attempts.", details={"retry_after_seconds": retry_after}
-        )
-
-    if ip_hash:
-        window = _failed_logins_by_ip_hash.get(ip_hash)
-        if window and now - window.first_attempt_at <= LOGIN_WINDOW_SECONDS and window.count >= LOGIN_MAX_FAILURES:
-            retry_after = int(LOGIN_WINDOW_SECONDS - (now - window.first_attempt_at))
-            raise AppError(
-                ErrorCode.RATE_LIMITED, "Too many failed login attempts.", details={"retry_after_seconds": retry_after}
-            )
+    if len(_states) > _PRUNE_THRESHOLD:
+        _prune(now)
+    for key in _keys(subject, ip_hash):
+        state = _states.setdefault(key, _KeyState())
+        while state.failures and now - state.failures[0] > LOGIN_WINDOW_SECONDS:
+            state.failures.popleft()
+        state.failures.append(now)
+        if len(state.failures) >= LOGIN_MAX_FAILURES:
+            state.locked_until = now + LOGIN_LOCK_SECONDS
+            state.failures.clear()
 
 
-def reset_failed_login(email: str, ip_hash: str | None) -> None:
-    """Reset the failed login count for the given email and IP hash."""
-    _failed_logins_by_email.pop(email.lower(), None)
-    if ip_hash:
-        _failed_logins_by_ip_hash.pop(ip_hash, None)
+def reset_failed_login(subject: str) -> None:
+    """Clear the subject's failures after a successful login. The IP counter is kept on purpose: an attacker must
+    not be able to reset it by logging in to their own account."""
+    _states.pop(f"subject:{subject.lower()}", None)
+
+
+def reset_rate_limits() -> None:
+    """Forget all state. Tests only."""
+    _states.clear()

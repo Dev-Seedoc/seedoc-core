@@ -1,4 +1,4 @@
-"""CSRF Origin protection middleware."""
+"""CSRF protection by Origin check (ARCHITECTURE §8)."""
 
 from collections.abc import Awaitable, Callable
 
@@ -8,26 +8,19 @@ from fastapi.responses import JSONResponse
 from seedoc.config import get_settings
 from seedoc.errors import AppError, ErrorCode
 
-_SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
+_SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 
 
 async def csrf_middleware(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
-    """CSRF: every non-GET request with a cookie must carry an Origin header matching APP_URL."""
-    if request.method in _SAFE_METHODS:
-        return await call_next(request)
+    """Every non-GET request that carries a cookie must send an `Origin` equal to `APP_URL`, else `403 csrf_failed`.
 
-    if not request.cookies:
+    TODO(M3-A1): also accept the active tenant domain on portal routes.
+    """
+    if request.method in _SAFE_METHODS or not request.cookies:
         return await call_next(request)
 
     origin = request.headers.get("origin")
-    if not origin:
-        error = AppError(ErrorCode.CSRF_FAILED, "Missing Origin header.")
+    if origin is None or origin.rstrip("/").lower() != get_settings().app_url.rstrip("/").lower():
+        error = AppError(ErrorCode.CSRF_FAILED)
         return JSONResponse(status_code=error.status_code, content=error.to_body())
-
-    settings = get_settings()
-    # In M3-A1 we will also allow active tenant domains for portal routes.
-    if origin.lower() != settings.app_url.lower():
-        error = AppError(ErrorCode.CSRF_FAILED, "Origin not allowed.")
-        return JSONResponse(status_code=error.status_code, content=error.to_body())
-
     return await call_next(request)

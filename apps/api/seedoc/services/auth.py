@@ -1,15 +1,18 @@
-"""Auth service (M0-A6)."""
+"""Auth service (API.md §2, BUSINESS_RULES §2). Each function owns its transaction."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from uuid import UUID
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from seedoc.audit import write_audit_event
+from seedoc.db.engine import set_tenant
 from seedoc.deps import RequestContext
 from seedoc.errors import AppError, ErrorCode
-from seedoc.models.tenants import Invitation, InvitationKind, TenantMember
-from seedoc.models.users import PasswordResetToken, User
+from seedoc.models.operators import OperatorMember, OperatorOrg, OperatorRole
+from seedoc.models.tenants import Invitation, InvitationKind, MemberRole, Tenant, TenantMember
+from seedoc.models.users import PasswordResetToken, User, UserSession
 from seedoc.schemas.auth import (
     AcceptInvitationRequest,
     InvitationPreview,
@@ -22,236 +25,297 @@ from seedoc.schemas.auth import (
     TenantMembershipRead,
     UserRead,
 )
-from seedoc.security.passwords import hash_password, verify_password
+from seedoc.security.passwords import hash_password, verify_password_or_dummy
 from seedoc.security.rate_limit import check_login_rate_limit, record_failed_login, reset_failed_login
-from seedoc.security.sessions import create_session, revoke_all_user_sessions
-from seedoc.security.tokens import hash_token
+from seedoc.security.sessions import create_session, revoke_all_user_sessions, revoke_session
+from seedoc.security.tokens import hash_token, new_token
+
+PASSWORD_RESET_TTL = timedelta(hours=1)
 
 
-async def login(db: AsyncSession, ctx: RequestContext, body: LoginRequest) -> tuple[str, MeRead]:
-    check_login_rate_limit(body.email, ctx.ip_hash)
+class _WrongPasswordError(Exception):
+    """Internal: lets a transaction roll back before the failure is counted and reported."""
 
-    stmt = select(User).where(User.email == body.email.lower())
-    user = await db.scalar(stmt)
+    def __init__(self, subject: str) -> None:
+        super().__init__(subject)
+        self.subject = subject
 
-    if not user or not user.password_hash or not verify_password(user.password_hash, body.password):
-        record_failed_login(body.email, ctx.ip_hash)
-        await write_audit_event(
-            db,
-            ctx,
-            action="auth.login_failed",
-            entity="user",
-            entity_id=user.id if user else None,
-            detail={"email": body.email},
-        )
+
+def _normalize_email(email: str) -> str:
+    return email.strip().lower()
+
+
+async def login(
+    db: AsyncSession, ctx: RequestContext, body: LoginRequest, user_agent: str | None
+) -> tuple[str, MeRead]:
+    email = _normalize_email(body.email)
+    check_login_rate_limit(email, ctx.ip_hash)
+
+    result: tuple[str, MeRead] | None = None
+    async with db.begin():
+        user = await db.scalar(select(User).where(User.email == email))
+        if user is not None and verify_password_or_dummy(user.password_hash, body.password):
+            if ctx.session_id is not None:  # rotate: a login always replaces the session the browser had
+                await revoke_session(db, ctx.session_id)
+            user.last_login_at = datetime.now(UTC)
+            token = await create_session(db, user.id, user_agent)
+            result = token, await _build_me(db, user, mfa_verified=False)
+        else:
+            if user is None:
+                verify_password_or_dummy(None, body.password)  # same Argon2 cost as a known e-mail
+            # Committed even though the request fails: the audit trail must keep failed logins.
+            await write_audit_event(
+                db, ctx, action="auth.login_failed", entity="user", entity_id=user.id if user else None
+            )
+
+    if result is None:
+        record_failed_login(email, ctx.ip_hash)
         raise AppError(ErrorCode.INVALID_CREDENTIALS)
-
-    reset_failed_login(body.email, ctx.ip_hash)
-
-    user.last_login_at = datetime.now(UTC)
-
-    # We rotate the token by just creating a new session. Since login is typically
-    # done from a new device or explicitly, it creates a new session token.
-    # user_agent from ctx would be better but ctx doesn't have it right now
-    token = await create_session(db, user.id, user_agent=None)
-
-    me = await get_me(db, user)
-    return token, me
+    reset_failed_login(email)
+    return result
 
 
-async def get_me(db: AsyncSession, user_or_ctx: User | RequestContext) -> MeRead:
-    if isinstance(user_or_ctx, RequestContext):
-        if not user_or_ctx.user_id:
+async def logout(db: AsyncSession, ctx: RequestContext) -> None:
+    if ctx.session_id is None:
+        return
+    async with db.begin():
+        await revoke_session(db, ctx.session_id)
+
+
+async def get_me(db: AsyncSession, ctx: RequestContext) -> MeRead:
+    if ctx.user_id is None or ctx.session_id is None:
+        raise AppError(ErrorCode.UNAUTHENTICATED)
+    async with db.begin():
+        user = await db.get(User, ctx.user_id)
+        if user is None:
             raise AppError(ErrorCode.UNAUTHENTICATED)
-        stmt = select(User).where(User.id == user_or_ctx.user_id)
-        user = await db.scalar(stmt)
-        if not user:
-            raise AppError(ErrorCode.UNAUTHENTICATED)
-    else:
-        user = user_or_ctx
+        mfa_verified_at = await db.scalar(select(UserSession.mfa_verified_at).where(UserSession.id == ctx.session_id))
+        return await _build_me(db, user, mfa_verified=mfa_verified_at is not None)
 
-    # Build MeRead
-    # We also need tenant names, but M0-A5 didn't show the exact model for Tenant.
-    # We will join if possible, but let's just do a simple query for now.
-    from seedoc.models.tenants import Tenant
 
-    stmt_tenant = (
-        select(Tenant.id, Tenant.name, TenantMember.role)
-        .join(TenantMember, TenantMember.tenant_id == Tenant.id)
-        .where(TenantMember.user_id == user.id)
+async def reauthenticate(db: AsyncSession, ctx: RequestContext, body: ReauthenticateRequest) -> None:
+    if ctx.user_id is None or ctx.session_id is None:
+        raise AppError(ErrorCode.UNAUTHENTICATED)
+    subject = f"reauth:{ctx.user_id}"
+    check_login_rate_limit(subject, ctx.ip_hash)
+
+    try:
+        async with db.begin():
+            password_hash = await db.scalar(select(User.password_hash).where(User.id == ctx.user_id))
+            if not verify_password_or_dummy(password_hash, body.password):
+                raise _WrongPasswordError(subject)
+            await db.execute(
+                update(UserSession).where(UserSession.id == ctx.session_id).values(fresh_auth_at=datetime.now(UTC))
+            )
+    except _WrongPasswordError as wrong:
+        record_failed_login(wrong.subject, ctx.ip_hash)
+        raise AppError(ErrorCode.INVALID_CREDENTIALS) from None
+    reset_failed_login(subject)
+
+
+async def request_password_reset(db: AsyncSession, ctx: RequestContext, body: PasswordResetRequest) -> None:
+    """Always succeeds (202), whether or not the e-mail has an account — no user enumeration."""
+    async with db.begin():
+        user_id = await db.scalar(select(User.id).where(User.email == _normalize_email(body.email)))
+        if user_id is None:
+            return
+        token = new_token()
+        db.add(
+            PasswordResetToken(
+                user_id=user_id, token_hash=hash_token(token), expires_at=datetime.now(UTC) + PASSWORD_RESET_TTL
+            )
+        )
+        # TODO(M0-A7): send the `password_reset` mail with `token` (link /reset-password/{token}).
+
+
+async def confirm_password_reset(db: AsyncSession, ctx: RequestContext, body: PasswordResetConfirmRequest) -> None:
+    if not body.token.isascii():
+        raise AppError(ErrorCode.INVITATION_INVALID)
+    now = datetime.now(UTC)
+    async with db.begin():
+        reset_token = await db.scalar(
+            select(PasswordResetToken).where(PasswordResetToken.token_hash == hash_token(body.token))
+        )
+        if reset_token is None or reset_token.used_at is not None or now >= reset_token.expires_at:
+            raise AppError(ErrorCode.INVITATION_INVALID)
+        user = await db.get(User, reset_token.user_id)
+        if user is None:
+            raise AppError(ErrorCode.INVITATION_INVALID)
+
+        user.password_hash = hash_password(body.password)
+        # Single use, and any other outstanding reset link of this user dies with it.
+        await db.execute(
+            update(PasswordResetToken)
+            .where(PasswordResetToken.user_id == user.id, PasswordResetToken.used_at.is_(None))
+            .values(used_at=now)
+        )
+        await revoke_all_user_sessions(db, user.id)
+        await write_audit_event(
+            db, ctx, action="auth.password_reset", entity="user", entity_id=user.id, actor_id=user.id
+        )
+
+
+async def get_invitation(db: AsyncSession, token: str) -> InvitationPreview:
+    async with db.begin():
+        invitation = await _load_open_invitation(db, token)
+        tenant_name = await db.scalar(select(Tenant.name).where(Tenant.id == invitation.tenant_id))
+        operator_org_name = (
+            await db.scalar(select(OperatorOrg.name).where(OperatorOrg.id == invitation.operator_org_id))
+            if invitation.operator_org_id
+            else None
+        )
+        password_hash = await db.scalar(select(User.password_hash).where(User.email == invitation.email))
+        return InvitationPreview(
+            kind=invitation.kind,
+            tenant_name=tenant_name,
+            operator_org_name=operator_org_name,
+            email=invitation.email,
+            has_account=password_hash is not None,
+        )
+
+
+async def accept_invitation(
+    db: AsyncSession, ctx: RequestContext, token: str, body: AcceptInvitationRequest, user_agent: str | None
+) -> tuple[str, MeRead]:
+    """Join the tenant (or operator org) of the invitation and log in.
+
+    - no account yet → `password` required, the user is created;
+    - account without a password (invited earlier, never accepted) → `password` required and set;
+    - account with a password → the caller must be logged in as that user **or** send the account's password.
+      The invitation token alone never logs anyone into an existing account.
+    """
+    try:
+        async with db.begin():
+            invitation = await _load_open_invitation(db, token)
+            email = _normalize_email(invitation.email)
+            user = await db.scalar(select(User).where(User.email == email))
+
+            if ctx.user_id is not None and (user is None or ctx.user_id != user.id):
+                raise AppError(ErrorCode.FORBIDDEN, "logged in as a different user than the invitation is for")
+
+            if user is None:
+                user = User(email=email, password_hash=hash_password(_require_password(body)), full_name=body.full_name)
+                db.add(user)
+                await db.flush()
+            elif user.password_hash is None:
+                user.password_hash = hash_password(_require_password(body))
+            elif ctx.user_id != user.id:
+                check_login_rate_limit(email, ctx.ip_hash)
+                if body.password is None or not verify_password_or_dummy(user.password_hash, body.password):
+                    raise _WrongPasswordError(email)
+            if body.full_name and not user.full_name:
+                user.full_name = body.full_name
+
+            await _add_membership(db, invitation, user.id)
+            invitation.accepted_at = datetime.now(UTC)
+            invitation.accepted_by = user.id
+            await write_audit_event(
+                db,
+                ctx,
+                action="member.joined",
+                entity="invitation",
+                entity_id=invitation.id,
+                detail={"user_id": str(user.id), "kind": invitation.kind.value},
+                tenant_id=invitation.tenant_id,
+                actor_id=user.id,
+            )
+
+            if ctx.session_id is not None:
+                await revoke_session(db, ctx.session_id)
+            session_token = await create_session(db, user.id, user_agent)
+            me = await _build_me(db, user, mfa_verified=False)
+    except _WrongPasswordError as wrong:
+        record_failed_login(wrong.subject, ctx.ip_hash)
+        raise AppError(ErrorCode.INVALID_CREDENTIALS) from None
+    return session_token, me
+
+
+def _require_password(body: AcceptInvitationRequest) -> str:
+    if body.password is None:
+        raise AppError(
+            ErrorCode.VALIDATION_FAILED,
+            details={"fields": [{"loc": ["body", "password"], "type": "missing", "msg": "Field required"}]},
+        )
+    return body.password
+
+
+async def _load_open_invitation(db: AsyncSession, token: str) -> Invitation:
+    """Find the invitation for `token`, scope the transaction to its tenant, and check it is still open.
+
+    `invitations` is under RLS and no tenant is known yet, so the SECURITY DEFINER `resolve_invitation()` returns
+    only the ids; the row itself is then read under RLS like any other tenant data.
+    """
+    if not token.isascii():
+        raise AppError(ErrorCode.INVITATION_INVALID)
+    row = (
+        await db.execute(
+            text("select invitation_id, tenant_id from resolve_invitation(:token_hash)"),
+            {"token_hash": hash_token(token)},
+        )
+    ).one_or_none()
+    if row is None:
+        raise AppError(ErrorCode.INVITATION_INVALID)
+    invitation_id: UUID = row.invitation_id
+    tenant_id: UUID = row.tenant_id
+    await set_tenant(db, tenant_id)
+
+    invitation = await db.get(Invitation, invitation_id)
+    if (
+        invitation is None
+        or invitation.accepted_at is not None
+        or invitation.revoked_at is not None
+        or datetime.now(UTC) >= invitation.expires_at
+    ):
+        raise AppError(ErrorCode.INVITATION_INVALID)
+    return invitation
+
+
+async def _add_membership(db: AsyncSession, invitation: Invitation, user_id: UUID) -> None:
+    if invitation.kind is InvitationKind.TENANT_MEMBER:
+        if invitation.role is None:  # excluded by ck_invitations_kind_fields
+            raise AppError(ErrorCode.INVITATION_INVALID)
+        existing = await db.get(TenantMember, (invitation.tenant_id, user_id))
+        if existing is None:
+            db.add(TenantMember(tenant_id=invitation.tenant_id, user_id=user_id, role=invitation.role))
+        return
+
+    if invitation.operator_org_id is None:  # excluded by ck_invitations_kind_fields
+        raise AppError(ErrorCode.INVITATION_INVALID)
+    if await db.get(OperatorMember, (invitation.operator_org_id, user_id)) is not None:
+        return
+    member_count = await db.scalar(
+        select(func.count())
+        .select_from(OperatorMember)
+        .where(OperatorMember.operator_org_id == invitation.operator_org_id)
     )
-    tenant_rows = await db.execute(stmt_tenant)
-    memberships = [TenantMembershipRead(tenant_id=row.id, tenant_name=row.name, role=row.role) for row in tenant_rows]
+    # BUSINESS_RULES §13: the first member of an operator org is its admin.
+    role = OperatorRole.ADMIN if not member_count else OperatorRole.MEMBER
+    db.add(OperatorMember(operator_org_id=invitation.operator_org_id, user_id=user_id, role=role))
 
-    from seedoc.models.operators import OperatorMember, OperatorOrg
 
-    stmt_op = (
+async def _build_me(db: AsyncSession, user: User, mfa_verified: bool) -> MeRead:
+    # member_tenants() is SECURITY DEFINER because tenant_members/tenants are under RLS.
+    tenant_rows = await db.execute(
+        text("select tenant_id, tenant_name, role from member_tenants(:user_id) order by tenant_name"),
+        {"user_id": user.id},
+    )
+    memberships = [
+        TenantMembershipRead(tenant_id=row.tenant_id, tenant_name=row.tenant_name, role=MemberRole(row.role))
+        for row in tenant_rows
+    ]
+    org_rows = await db.execute(
         select(OperatorOrg.id, OperatorOrg.name, OperatorMember.role)
         .join(OperatorMember, OperatorMember.operator_org_id == OperatorOrg.id)
         .where(OperatorMember.user_id == user.id)
+        .order_by(OperatorOrg.name)
     )
-    op_rows = await db.execute(stmt_op)
-    operator_orgs = [OperatorOrgMembershipRead(operator_org_id=row.id, name=row.name, role=row.role) for row in op_rows]
-
+    operator_orgs = [
+        OperatorOrgMembershipRead(operator_org_id=org_id, name=name, role=role) for org_id, name, role in org_rows
+    ]
     return MeRead(
         user=UserRead.model_validate(user),
         memberships=memberships,
         operator_orgs=operator_orgs,
         is_staff=user.is_staff,
-        # Technically this should be whether it was verified in the session.
-        mfa_verified=user.totp_enabled_at is not None,
+        mfa_verified=mfa_verified,
     )
-
-
-async def reauthenticate(db: AsyncSession, ctx: RequestContext, body: ReauthenticateRequest) -> None:
-    if not ctx.user_id or not ctx.session_id:
-        raise AppError(ErrorCode.UNAUTHENTICATED)
-
-    check_login_rate_limit(str(ctx.user_id), ctx.ip_hash)
-
-    stmt = select(User).where(User.id == ctx.user_id)
-    user = await db.scalar(stmt)
-    if not user or not user.password_hash or not verify_password(user.password_hash, body.password):
-        record_failed_login(str(ctx.user_id), ctx.ip_hash)
-        raise AppError(ErrorCode.INVALID_CREDENTIALS)
-
-    reset_failed_login(str(ctx.user_id), ctx.ip_hash)
-
-    from seedoc.models.users import UserSession
-
-    stmt_session = update(UserSession).where(UserSession.id == ctx.session_id).values(fresh_auth_at=datetime.now(UTC))
-    await db.execute(stmt_session)
-
-
-async def request_password_reset(db: AsyncSession, ctx: RequestContext, body: PasswordResetRequest) -> None:
-    # Always 202. We'll implement actual sending in M0-A7 when mail/send.py is added.
-    pass
-
-
-async def confirm_password_reset(db: AsyncSession, ctx: RequestContext, body: PasswordResetConfirmRequest) -> None:
-    now = datetime.now(UTC)
-    stmt = select(PasswordResetToken).where(PasswordResetToken.token_hash == hash_token(body.token))
-    reset_token = await db.scalar(stmt)
-
-    if not reset_token or reset_token.used_at or now > reset_token.expires_at:
-        raise AppError(ErrorCode.INVITATION_INVALID)
-
-    stmt_user = select(User).where(User.id == reset_token.user_id)
-    user = await db.scalar(stmt_user)
-    if not user:
-        raise AppError(ErrorCode.INVITATION_INVALID)
-
-    user.password_hash = hash_password(body.password)
-    reset_token.used_at = now
-
-    await revoke_all_user_sessions(db, user.id)
-
-    await write_audit_event(
-        db,
-        ctx,
-        action="auth.password_reset",
-        entity="user",
-        entity_id=user.id,
-        detail={},
-    )
-
-
-async def get_invitation(db: AsyncSession, token: str) -> InvitationPreview:
-    now = datetime.now(UTC)
-    stmt = select(Invitation).where(Invitation.token_hash == hash_token(token))
-    inv = await db.scalar(stmt)
-
-    if not inv or inv.accepted_at or inv.revoked_at or now > inv.expires_at:
-        raise AppError(ErrorCode.INVITATION_INVALID)
-
-    tenant_name = None
-    if inv.tenant_id:
-        from seedoc.models.tenants import Tenant
-
-        tenant_name = await db.scalar(select(Tenant.name).where(Tenant.id == inv.tenant_id))
-
-    operator_org_name = None
-    if inv.operator_org_id:
-        from seedoc.models.operators import OperatorOrg
-
-        operator_org_name = await db.scalar(select(OperatorOrg.name).where(OperatorOrg.id == inv.operator_org_id))
-
-    stmt_user = select(User).where(User.email == inv.email.lower())
-    user = await db.scalar(stmt_user)
-    has_account = user is not None and user.password_hash is not None
-
-    return InvitationPreview(
-        kind=inv.kind,
-        tenant_name=tenant_name,
-        operator_org_name=operator_org_name,
-        email=inv.email,
-        has_account=has_account,
-    )
-
-
-async def accept_invitation(
-    db: AsyncSession, ctx: RequestContext, token: str, body: AcceptInvitationRequest
-) -> tuple[str, MeRead]:
-    now = datetime.now(UTC)
-    stmt = select(Invitation).where(Invitation.token_hash == hash_token(token))
-    inv = await db.scalar(stmt)
-
-    if not inv or inv.accepted_at or inv.revoked_at or now > inv.expires_at:
-        raise AppError(ErrorCode.INVITATION_INVALID)
-
-    stmt_user = select(User).where(User.email == inv.email.lower())
-    user = await db.scalar(stmt_user)
-
-    if not user:
-        if not body.password:
-            raise AppError(ErrorCode.VALIDATION_FAILED, "Password required for new accounts.")
-        user = User(
-            email=inv.email.lower(),
-            password_hash=hash_password(body.password),
-            full_name=body.full_name,
-        )
-        db.add(user)
-        await db.flush()
-    else:
-        # If user has no password yet, we must set it
-        if not user.password_hash:
-            if not body.password:
-                raise AppError(ErrorCode.VALIDATION_FAILED, "Password required.")
-            user.password_hash = hash_password(body.password)
-        if body.full_name and not user.full_name:
-            user.full_name = body.full_name
-
-    if inv.kind == InvitationKind.TENANT_MEMBER and inv.tenant_id:
-        # Check if already member
-        stmt_mem = select(TenantMember).where(TenantMember.tenant_id == inv.tenant_id, TenantMember.user_id == user.id)
-        if not await db.scalar(stmt_mem):
-            mem = TenantMember(tenant_id=inv.tenant_id, user_id=user.id, role=inv.role)
-            db.add(mem)
-    elif inv.kind == InvitationKind.OPERATOR and inv.operator_org_id:
-        from seedoc.models.operators import OperatorMember
-
-        stmt_mem = select(OperatorMember).where(
-            OperatorMember.operator_org_id == inv.operator_org_id, OperatorMember.user_id == user.id
-        )
-        if not await db.scalar(stmt_mem):
-            # The role for operator invite should be defined in invitation or default
-            from seedoc.models.operators import OperatorRole
-            mem = OperatorMember(operator_org_id=inv.operator_org_id, user_id=user.id, role=OperatorRole.MEMBER)
-            db.add(mem)
-
-    inv.accepted_at = now
-    inv.accepted_by = user.id
-    await db.flush()
-
-    await write_audit_event(
-        db,
-        ctx,
-        action="member.joined",
-        entity="user",
-        entity_id=user.id,
-        detail={"invitation_id": str(inv.id)},
-    )
-
-    session_token = await create_session(db, user.id, user_agent=None)
-    me = await get_me(db, user)
-    return session_token, me
