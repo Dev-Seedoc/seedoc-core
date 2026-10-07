@@ -45,19 +45,62 @@ async def get_admin_db() -> AsyncIterator[AsyncSession]:
         yield session
 
 
-async def get_ctx(request: Request) -> RequestContext:
-    # TODO(M0-A6): resolve the `seedoc_session` cookie into user, session and fresh-auth fields.
+async def get_ctx(request: Request, db: AsyncSession = Depends(get_db)) -> RequestContext:  # noqa: B008
+    import contextlib
+
+    from sqlalchemy import select
+
+    from seedoc.models.operators import OperatorMember
+    from seedoc.models.tenants import TenantMember
+    from seedoc.models.users import User
+    from seedoc.security.sessions import SESSION_COOKIE, get_and_touch_session
+
     client_ip = request.client.host if request.client else None
     ip_hash = get_ip_hash(client_ip, get_settings().ip_hash_pepper) if client_ip else None
+
+    user_id = None
+    session_id = None
+    fresh_auth_at = None
+    is_staff = False
+    role = None
+    operator_org_ids = ()
+
+    tenant_id_str = request.path_params.get("tenant_id")
+    tenant_id = None
+    if tenant_id_str:
+        with contextlib.suppress(ValueError):
+            tenant_id = UUID(tenant_id_str)
+
+    token = request.cookies.get(SESSION_COOKIE)
+    if token:
+        session_data = await get_and_touch_session(db, token)
+        if session_data:
+            user_id = session_data["user_id"]
+            session_id = session_data["session_id"]
+            fresh_auth_at = session_data["fresh_auth_at"]
+
+            stmt = select(User.is_staff).where(User.id == user_id)
+            is_staff = await db.scalar(stmt) or False
+
+            if tenant_id:
+                stmt_role = select(TenantMember.role).where(
+                    TenantMember.user_id == user_id, TenantMember.tenant_id == tenant_id
+                )
+                role = await db.scalar(stmt_role)
+
+            stmt_ops = select(OperatorMember.operator_org_id).where(OperatorMember.user_id == user_id)
+            result = await db.execute(stmt_ops)
+            operator_org_ids = tuple(row[0] for row in result.all())
+
     return RequestContext(
-        user_id=None,
-        tenant_id=None,
-        role=None,
-        is_staff=False,
-        session_id=None,
-        fresh_auth_at=None,
+        user_id=user_id,
+        tenant_id=tenant_id,
+        role=role,
+        is_staff=is_staff,
+        session_id=session_id,
+        fresh_auth_at=fresh_auth_at,
         portal_session_id=None,
-        operator_org_ids=(),
+        operator_org_ids=operator_org_ids,
         ip_hash=ip_hash,
         request_id=request.state.request_id,
     )

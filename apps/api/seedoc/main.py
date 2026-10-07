@@ -109,6 +109,10 @@ def create_app() -> FastAPI:
         response.headers[REQUEST_ID_HEADER] = request_id
         return response
 
+    from seedoc.security.csrf import csrf_middleware
+
+    app.middleware("http")(csrf_middleware)
+
     app.add_exception_handler(AppError, _handle_app_error)
     app.add_exception_handler(RequestValidationError, _handle_validation_error)
     app.add_exception_handler(StarletteHTTPException, _handle_http_error)

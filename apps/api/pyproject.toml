@@ -12,6 +12,7 @@ dependencies = [
     "asyncpg>=0.30",
     "alembic>=1.14",
     "structlog>=24.4",
+    "argon2-cffi>=25.1.0",
 ]
 
 [dependency-groups]
