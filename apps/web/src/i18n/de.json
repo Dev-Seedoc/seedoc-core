@@ -40,7 +40,7 @@
     "accessLevel": {
       "public": "Öffentlich",
       "customer": "Nur Kunden",
-      "internal": "Nur Intern"
+      "internal": "Nur intern"
     },
     "docType": {
       "operating_manual": "Betriebsanleitung",
