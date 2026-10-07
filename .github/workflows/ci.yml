@@ -3,7 +3,8 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    # main + each developer's branch: every push to DevArea-Jamshid / DevArea-Ritik is tested before it is merged.
+    branches: [main, "DevArea-*"]
 
 concurrency:
   group: ci-${{ github.ref }}

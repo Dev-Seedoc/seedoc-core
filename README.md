@@ -427,7 +427,7 @@ Full list: `docs/API.md` and `docs/NAMING.md` §11.
 - Audit actions are `<entity>.<past_tense_verb>`, e.g. `delivery.published`.
 - Logs: `structlog` JSON with `snake_case` event names. Never log tokens, PINs, passwords, presigned URLs, raw IPs
   or document text.
-- Git branches: `<type>/<milestone>-<slug>` (e.g. `feat/m2-publish-service`). Commits follow Conventional Commits
+- Git branches: one per developer (`DevArea-Jamshid`, `DevArea-Ritik`, see §14.5). Commits follow Conventional Commits
   with an area scope, e.g. `feat(deliveries): add completeness check`.
 
 ## 13. Configuration
@@ -592,15 +592,34 @@ make test
 | 1025 / 8025 | Mailpit SMTP / web UI |
 | 8080 | Web container (only with `--profile app`) |
 
-### 14.5 Day-to-day
+### 14.5 Day-to-day: branches and merging
+
+Each developer has **one branch** and pushes only there. Nobody pushes to `main` directly.
+
+| Branch | Who pushes | Merged into `main` by |
+| --- | --- | --- |
+| `DevArea-Jamshid` | Jamshid | Raven, after the branch passes all checks |
+| `DevArea-Ritik` | Raven | Raven |
 
 ```bash
-git switch main && git pull
-git switch -c feat/m0-auth-screens      # <type>/<milestone>-<slug>, NAMING §14
+# start of the day: pick up what was merged into main
+git switch DevArea-Jamshid
+git pull
+git merge origin/main
 # … work, then before pushing:
-make lint typecheck test
-git push -u origin feat/m0-auth-screens # open a PR; the other developer reviews
+make lint typecheck test        # Docker must be running, otherwise DB tests are only skipped
+git push                        # CI runs on every push to DevArea-* branches
 ```
+
+Merging into `main` (Raven):
+
+```bash
+make check-branch BRANCH=DevArea-Jamshid   # all CI checks on the branch exactly as pushed, in a temp worktree
+```
+
+Only when it prints `ALL CHECKS PASSED` (and main can be fast-forwarded), `main` is moved to the branch — via a PR
+on GitHub or a fast-forward push. If main has commits the branch lacks, the branch owner runs `git merge origin/main`
+first and pushes again.
 
 ### 14.6 Troubleshooting
 

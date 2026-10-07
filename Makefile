@@ -1,7 +1,7 @@
 COMPOSE := docker compose -f infra/docker-compose.yml
 API := cd apps/api &&
 
-.PHONY: help install up down dev dev-api dev-web migrate seed test test-api test-web lint typecheck gen-api
+.PHONY: help install up down dev dev-api dev-web migrate seed test test-api test-web lint typecheck gen-api check-branch
 
 help:
 	@echo "install    install backend (uv) and frontend (pnpm) dependencies"
@@ -11,6 +11,7 @@ help:
 	@echo "seed       demo tenant, owner and staff user"
 	@echo "test       backend + frontend tests"
 	@echo "lint       ruff + eslint;  typecheck: pyright + tsc"
+	@echo "check-branch BRANCH=DevArea-Jamshid   run all checks on a pushed branch before merging it into main"
 
 install:
 	$(API) uv sync
@@ -55,3 +56,6 @@ typecheck:
 
 gen-api:
 	pnpm --dir apps/web gen:api
+
+check-branch:
+	bash scripts/check-branch.sh $(BRANCH)
