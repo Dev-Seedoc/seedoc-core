@@ -41,11 +41,15 @@ export function apiError(status: number, code: string, details: Record<string, u
   return { status, body: { error: { code, message: code, details } } };
 }
 
-// Stubs fetch with one answer per "METHOD /api/v1/path". Unknown requests answer 404 not_found.
-export function stubApi(answers: Record<string, FakeResponse>) {
+// An answer, or a function choosing one from the request (e.g. by its query string).
+export type FakeAnswer = FakeResponse | ((request: Request) => FakeResponse);
+
+// Stubs fetch with one answer per "METHOD /api/v1/path" (query string ignored). Unknown requests answer 404.
+export function stubApi(answers: Record<string, FakeAnswer>) {
   const fetchMock = vi.fn((request: Request) => {
     const key = `${request.method} ${new URL(request.url).pathname}`;
-    const answer = answers[key] ?? apiError(404, "not_found");
+    const answerOrFn = answers[key] ?? apiError(404, "not_found");
+    const answer = typeof answerOrFn === "function" ? answerOrFn(request) : answerOrFn;
     const body = answer.body === undefined ? null : JSON.stringify(answer.body);
     return Promise.resolve(
       new Response(body, { status: answer.status, headers: { "Content-Type": "application/json" } }),

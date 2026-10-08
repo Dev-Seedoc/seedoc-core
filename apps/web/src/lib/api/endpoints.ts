@@ -8,9 +8,13 @@ import type {
   InvitationPreview,
   LoginRequest,
   MeRead,
+  Page_StaffTenantListItem_,
   PasswordResetConfirmRequest,
   PasswordResetRequest,
   ReauthenticateRequest,
+  StaffTenantCreate,
+  StaffTenantRead,
+  StaffTenantUpdate,
   TotpSetupRead,
   VerifyTotpRequest,
 } from "./types";
@@ -83,4 +87,22 @@ export function setupTotp(): Promise<TotpSetupRead> {
 
 export function verifyTotp(body: VerifyTotpRequest): Promise<void> {
   return unwrapEmpty(client.POST("/api/v1/auth/totp/verify", { body }));
+}
+
+// Staff
+
+export function staffListTenants(cursor?: string): Promise<Page_StaffTenantListItem_> {
+  return unwrap(client.GET("/api/v1/staff/tenants", { params: { query: { cursor } } }));
+}
+
+export function staffCreateTenant(body: StaffTenantCreate): Promise<StaffTenantRead> {
+  return unwrap(client.POST("/api/v1/staff/tenants", { body }));
+}
+
+export function staffGetTenant(tenantId: string): Promise<StaffTenantRead> {
+  return unwrap(client.GET("/api/v1/staff/tenants/{tenant_id}", { params: { path: { tenant_id: tenantId } } }));
+}
+
+export function staffUpdateTenant(tenantId: string, body: StaffTenantUpdate): Promise<StaffTenantRead> {
+  return unwrap(client.PATCH("/api/v1/staff/tenants/{tenant_id}", { params: { path: { tenant_id: tenantId } }, body }));
 }
