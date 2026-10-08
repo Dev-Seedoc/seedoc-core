@@ -1,8 +1,10 @@
 import { createBrowserRouter, type RouteObject } from "react-router";
 
+import { AcceptInvitationPage } from "@/auth/AcceptInvitationPage";
 import { AuthLayout } from "@/auth/AuthLayout";
 import { ForgotPasswordPage } from "@/auth/ForgotPasswordPage";
 import { LoginPage } from "@/auth/LoginPage";
+import { ResetPasswordPage } from "@/auth/ResetPasswordPage";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PagePlaceholder } from "@/components/layout/PagePlaceholder";
 import type { RouteHandle } from "@/components/layout/routeHandle";
@@ -44,6 +46,8 @@ export const routes: RouteObject[] = [
     children: [
       { path: "/login", element: <LoginPage /> },
       { path: "/forgot-password", element: <ForgotPasswordPage /> },
+      { path: "/reset-password/:token", element: <ResetPasswordPage /> },
+      { path: "/invite/:token", element: <AcceptInvitationPage /> },
     ],
   },
   { path: "*", element: <ShellPlaceholder /> },

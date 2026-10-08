@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { queryKeys } from "@/lib/api/queryKeys";
 import type { MeRead } from "@/lib/api/types";
 import { routes } from "@/router";
+import { apiError, renderRoute, stubApi } from "@/test/renderRoute";
 
 const ME: MeRead = {
   user: { id: "00000000-0000-4000-8000-000000000001", email: "owner@example.com", full_name: "Olga Owner" },
@@ -124,5 +125,20 @@ describe("AppLayout", () => {
     renderApp("/m/some-token", ME);
 
     expect(screen.queryByRole("navigation", { name: "Hauptnavigation" })).not.toBeInTheDocument();
+  });
+  it("logs out from the user menu and lands on the login page", async () => {
+    stubApi({
+      "POST /api/v1/auth/logout": { status: 204 },
+      "GET /api/v1/auth/me": apiError(401, "unauthenticated"),
+    });
+    const router = renderRoute("/documents", ME);
+
+    fireEvent.keyDown(screen.getByRole("button", { name: "Benutzermenü" }), { key: "Enter" });
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Abmelden" }));
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/login");
+    });
+    expect(await screen.findByRole("heading", { name: "Anmelden" })).toBeInTheDocument();
   });
 });

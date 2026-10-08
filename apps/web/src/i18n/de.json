@@ -137,7 +137,45 @@
     },
     "validation": {
       "emailInvalid": "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
-      "passwordRequired": "Bitte geben Sie Ihr Passwort ein."
+      "passwordRequired": "Bitte geben Sie Ihr Passwort ein.",
+      "passwordLength": "Das Passwort muss zwischen 12 und 128 Zeichen lang sein.",
+      "passwordMismatch": "Die Passwörter stimmen nicht überein."
+    },
+    "newPassword": {
+      "password": "Neues Passwort",
+      "passwordRepeat": "Passwort wiederholen",
+      "hint": "Mindestens 12 Zeichen."
+    },
+    "resetPassword": {
+      "title": "Neues Passwort festlegen",
+      "description": "Wählen Sie ein neues Passwort für Ihr Konto.",
+      "submit": "Passwort speichern",
+      "successTitle": "Ihr Passwort wurde geändert",
+      "successDescription": "Bitte melden Sie sich mit Ihrem neuen Passwort an. Aus Sicherheitsgründen wurden Sie auf allen Geräten abgemeldet.",
+      "toLogin": "Zur Anmeldung",
+      "invalidTitle": "Dieser Link ist ungültig oder abgelaufen",
+      "invalidDescription": "Links zum Zurücksetzen sind 1 Stunde gültig und können nur einmal verwendet werden.",
+      "requestNew": "Neuen Link anfordern"
+    },
+    "acceptInvitation": {
+      "title": "Einladung zu {{name}}",
+      "forEmail": "Die Einladung gilt für {{email}}.",
+      "fullName": "Name (optional)",
+      "createSubmit": "Konto erstellen und beitreten",
+      "existingAccount": "Sie haben bereits ein SeeDoc-Konto. Bitte bestätigen Sie die Einladung mit Ihrem Passwort.",
+      "password": "Passwort",
+      "acceptSubmit": "Einladung annehmen",
+      "wrongUserTitle": "Sie sind mit einem anderen Konto angemeldet",
+      "wrongUserDescription": "Diese Einladung gilt für {{invitedEmail}}, Sie sind als {{currentEmail}} angemeldet. Bitte melden Sie sich ab, um die Einladung anzunehmen.",
+      "logout": "Abmelden",
+      "invalidTitle": "Diese Einladung ist nicht mehr gültig",
+      "invalidDescription": "Die Einladung ist abgelaufen, wurde bereits verwendet oder widerrufen. Bitte fordern Sie eine neue Einladung an."
+    },
+    "reauth": {
+      "title": "Bitte bestätigen Sie Ihr Passwort",
+      "description": "Für diese Aktion müssen Sie Ihr Passwort erneut eingeben.",
+      "password": "Passwort",
+      "submit": "Bestätigen"
     }
   },
   "errors": {
