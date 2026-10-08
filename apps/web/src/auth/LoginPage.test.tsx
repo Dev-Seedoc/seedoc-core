@@ -61,6 +61,33 @@ describe("LoginPage", () => {
     expect(await loginRequest?.json()).toEqual({ email: "owner@example.com", password: "correct-horse-battery" });
   });
 
+  it("keeps the query string and hash of the page the user wanted", async () => {
+    stubApi({ ...LOGGED_OUT, "POST /api/v1/auth/login": { status: 200, body: TEST_ME } });
+    const router = renderRoute({
+      pathname: "/login",
+      state: { from: { pathname: "/products", search: "?tab=releases", hash: "#r2" } },
+    });
+
+    fillAndSubmit("owner@example.com", "correct-horse-battery");
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/products");
+    });
+    expect(router.state.location.search).toBe("?tab=releases");
+    expect(router.state.location.hash).toBe("#r2");
+  });
+
+  it("ignores a remembered page that is not a path inside the app", async () => {
+    stubApi({ ...LOGGED_OUT, "POST /api/v1/auth/login": { status: 200, body: TEST_ME } });
+    const router = renderRoute({ pathname: "/login", state: { from: { pathname: "//evil.example/x" } } });
+
+    fillAndSubmit("owner@example.com", "correct-horse-battery");
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/");
+    });
+  });
+
   it("goes to the overview after login without a remembered page", async () => {
     stubApi({ ...LOGGED_OUT, "POST /api/v1/auth/login": { status: 200, body: TEST_ME } });
     const router = renderRoute("/login");
