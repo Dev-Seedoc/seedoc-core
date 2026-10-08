@@ -374,5 +374,6 @@ async def _build_me(db: AsyncSession, user: User, mfa_verified: bool) -> MeRead:
         memberships=memberships,
         operator_orgs=operator_orgs,
         is_staff=user.is_staff,
+        has_totp=user.totp_enabled_at is not None,
         mfa_verified=mfa_verified,
     )

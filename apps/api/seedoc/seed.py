@@ -120,7 +120,7 @@ def _print_result(result: SeedResult) -> None:
         print("\n  TOTP_ENCRYPTION_KEY is empty, so the staff user has no TOTP yet. Set it in .env and run again.")
     if any(user.password or user.totp_uri for user in result.users):
         print("\nSecrets are shown only now. Store them in your password manager.")
-    print(f"Log in: POST {settings.app_url}/api/v1/auth/login  (login screen arrives with M0-B5)\n")
+    print(f"Log in: {settings.app_url}/login\n")
 
 
 async def _main(reset_passwords: bool) -> None:

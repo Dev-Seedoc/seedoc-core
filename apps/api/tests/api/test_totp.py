@@ -38,6 +38,7 @@ async def test_setup_totp_is_staff_only(client_as: ClientAs) -> None:
 
 async def test_enrolment_setup_then_verify(admin_db: AsyncSession, client_staff: ClientStaff) -> None:
     staff = await client_staff(mfa_verified=False, totp_enabled=False)
+    assert (await staff.http.get("/api/v1/auth/me")).json()["has_totp"] is False
 
     setup = await staff.http.post("/api/v1/auth/totp/setup")
 
@@ -62,6 +63,7 @@ async def test_enrolment_setup_then_verify(admin_db: AsyncSession, client_staff:
     assert session_mfa is not None
     me = await staff.http.get("/api/v1/auth/me")
     assert me.json()["mfa_verified"] is True
+    assert me.json()["has_totp"] is True
     assert (await staff.http.get("/api/v1/staff/tenants")).status_code == 200
 
 

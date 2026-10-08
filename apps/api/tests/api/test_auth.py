@@ -92,6 +92,7 @@ async def test_login_sets_cookie_and_me_lists_memberships(
     assert body["user"]["email"] == "login@example.com"
     assert body["memberships"] == [{"tenant_id": str(tenant.id), "tenant_name": "Beta AG", "role": "admin"}]
     assert body["is_staff"] is False
+    assert body["has_totp"] is False
     assert body["mfa_verified"] is False
     set_cookie = response.headers["set-cookie"].lower()
     assert "httponly" in set_cookie

@@ -306,6 +306,8 @@ export interface components {
             operator_orgs: components["schemas"]["OperatorOrgMembershipRead"][];
             /** Is Staff */
             is_staff: boolean;
+            /** Has Totp */
+            has_totp: boolean;
             /** Mfa Verified */
             mfa_verified: boolean;
         };

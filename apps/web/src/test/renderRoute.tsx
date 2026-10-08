@@ -14,6 +14,7 @@ export const TEST_ME: MeRead = {
   ],
   operator_orgs: [],
   is_staff: false,
+  has_totp: false,
   mfa_verified: false,
 };
 

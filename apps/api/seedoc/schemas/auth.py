@@ -44,6 +44,7 @@ class MeRead(BaseModel):
     memberships: list[TenantMembershipRead]
     operator_orgs: list[OperatorOrgMembershipRead]
     is_staff: bool
+    has_totp: bool
     mfa_verified: bool
 
 
