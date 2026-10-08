@@ -40,6 +40,11 @@ function readSecret(otpauthUri: string): string {
   return secret.match(/.{1,4}/g)?.join(" ") ?? secret;
 }
 
+// The API answers a wrong code with `invalid_credentials`, whose general text is about e-mail and password.
+function getVerifyErrorMessage(error: unknown, t: TFunction): string {
+  return getErrorCode(error) === "invalid_credentials" ? t("staff.totp.codeWrong") : getErrorMessage(error);
+}
+
 function FormAlert({ children }: { children: string }) {
   return (
     <p role="alert" className="border-destructive/30 bg-destructive/10 text-destructive rounded-md border p-3 text-sm">
@@ -93,7 +98,7 @@ function CodeForm({ onNotSetUp }: { onNotSetUp: () => void }) {
       </div>
 
       {verify.isError && getErrorCode(verify.error) !== "conflict" && (
-        <FormAlert>{getErrorMessage(verify.error)}</FormAlert>
+        <FormAlert>{getVerifyErrorMessage(verify.error, t)}</FormAlert>
       )}
 
       <Button type="submit" disabled={verify.isPending}>

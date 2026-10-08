@@ -62,13 +62,13 @@ describe("TotpScreen", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("shows a wrong code inline", async () => {
+  it("says the code is wrong instead of mentioning e-mail and password", async () => {
     stubApi({ [VERIFY]: apiError(401, "invalid_credentials") });
     renderRoute("/staff", STAFF_NEEDS_TOTP);
 
     enterCode("123456");
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Ungültige E-Mail-Adresse oder falsches Passwort.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Der Code ist falsch oder abgelaufen.");
   });
 
   it("opens the console after a correct code", async () => {

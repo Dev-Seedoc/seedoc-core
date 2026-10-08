@@ -206,7 +206,8 @@
       "notSetUp": "Noch keine Authenticator-App eingerichtet?",
       "setUpNow": "Jetzt einrichten",
       "alreadySetUp": "Die Zwei-Faktor-Authentifizierung ist bereits eingerichtet. Bitte geben Sie Ihren Code ein.",
-      "codeInvalid": "Bitte geben Sie den 6-stelligen Code ein."
+      "codeInvalid": "Bitte geben Sie den 6-stelligen Code ein.",
+      "codeWrong": "Der Code ist falsch oder abgelaufen."
     },
     "tenants": {
       "title": "Hersteller",
