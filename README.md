@@ -594,32 +594,43 @@ make test
 
 ### 14.5 Day-to-day: branches and merging
 
-Each developer has **one branch** and pushes only there. Nobody pushes to `main` directly.
+Each developer has **one branch** and pushes only there. Nobody pushes to `main` directly. Work reaches `main` in
+two steps, so integration problems show up on `DevArea-Ritik`, never on `main`:
 
-| Branch | Who pushes | Merged into `main` by |
+```
+DevArea-Jamshid ──(1) merge + test──▶ DevArea-Ritik ──(2) check-branch──▶ main (fast-forward)
+```
+
+| Branch | Who pushes | Goes into |
 | --- | --- | --- |
-| `DevArea-Jamshid` | Jamshid | Raven, after the branch passes all checks |
-| `DevArea-Ritik` | Raven | Raven |
+| `DevArea-Jamshid` | Jamshid | `DevArea-Ritik` (Raven merges it after the integration tests pass) |
+| `DevArea-Ritik` | Raven | `main` (fast-forward, after `make check-branch BRANCH=DevArea-Ritik` passes) |
+
+Jamshid, every day:
 
 ```bash
-# start of the day: pick up what was merged into main
 git switch DevArea-Jamshid
 git pull
-git merge origin/main
+git merge origin/main           # pick up everything already integrated
 # … work, then before pushing:
 make lint typecheck test        # Docker must be running, otherwise DB tests are only skipped
 git push                        # CI runs on every push to DevArea-* branches
 ```
 
-Merging into `main` (Raven):
+Raven, to integrate:
 
 ```bash
-make check-branch BRANCH=DevArea-Jamshid   # all CI checks on the branch exactly as pushed, in a temp worktree
+make check-branch BRANCH=DevArea-Jamshid   # (optional first look) his branch alone, as pushed
+git switch DevArea-Ritik && git pull
+git merge origin/DevArea-Jamshid           # (1) integrate; fix conflicts here, never on main
+make lint typecheck test                   # integration tests on the combined code
+git push
+make check-branch BRANCH=DevArea-Ritik     # (2) all CI checks on the pushed combined branch
+git push origin origin/DevArea-Ritik:refs/heads/main   # only after ALL CHECKS PASSED (fast-forward)
 ```
 
-Only when it prints `ALL CHECKS PASSED` (and main can be fast-forwarded), `main` is moved to the branch — via a PR
-on GitHub or a fast-forward push. If main has commits the branch lacks, the branch owner runs `git merge origin/main`
-first and pushes again.
+If a check fails, `main` is not touched: fix it on `DevArea-Ritik` (or ask Jamshid to fix it on his branch) and run
+the steps again.
 
 ### 14.6 Troubleshooting
 

@@ -50,4 +50,4 @@ echo "== Web: lint, format, typecheck, test, build"
 (cd apps/web && pnpm -s lint && pnpm -s format:check && pnpm -s typecheck && pnpm -s test && pnpm -s build)
 
 echo ""
-echo "ALL CHECKS PASSED for ${ref} — safe to merge into main."
+echo "ALL CHECKS PASSED for ${ref}."
