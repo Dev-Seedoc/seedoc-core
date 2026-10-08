@@ -84,6 +84,40 @@
       "zh": "Chinese"
     }
   },
+  "shell": {
+    "nav": {
+      "label": "Main navigation",
+      "dashboard": "Overview",
+      "documents": "Documents",
+      "products": "Products",
+      "customers": "Customers",
+      "settings": "Settings",
+      "staff": "SeeDoc team",
+      "operator": "Operator"
+    },
+    "breadcrumbs": {
+      "label": "Breadcrumb"
+    },
+    "tenantSwitcher": {
+      "label": "Switch manufacturer"
+    },
+    "userMenu": {
+      "label": "User menu",
+      "logout": "Log out"
+    },
+    "loading": "Loading …",
+    "noTenant": {
+      "title": "You are not assigned to a manufacturer yet",
+      "description": "Please ask your administrator to invite you."
+    },
+    "loadFailed": {
+      "title": "The application could not be loaded"
+    },
+    "placeholder": {
+      "title": "This area is under construction",
+      "description": "This page will be available soon."
+    }
+  },
   "errors": {
     "unauthenticated": "You are not authenticated or your session has expired. Please log in.",
     "mfa_required": "Two-factor authentication required. Please enter your verification code.",

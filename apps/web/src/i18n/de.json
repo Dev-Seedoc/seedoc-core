@@ -84,6 +84,40 @@
       "zh": "Chinesisch"
     }
   },
+  "shell": {
+    "nav": {
+      "label": "Hauptnavigation",
+      "dashboard": "Übersicht",
+      "documents": "Dokumente",
+      "products": "Produkte",
+      "customers": "Kunden",
+      "settings": "Einstellungen",
+      "staff": "SeeDoc-Team",
+      "operator": "Betreiber"
+    },
+    "breadcrumbs": {
+      "label": "Seitenpfad"
+    },
+    "tenantSwitcher": {
+      "label": "Hersteller wechseln"
+    },
+    "userMenu": {
+      "label": "Benutzermenü",
+      "logout": "Abmelden"
+    },
+    "loading": "Wird geladen …",
+    "noTenant": {
+      "title": "Sie sind noch keinem Hersteller zugeordnet",
+      "description": "Bitte lassen Sie sich von Ihrer Administration einladen."
+    },
+    "loadFailed": {
+      "title": "Die Anwendung konnte nicht geladen werden"
+    },
+    "placeholder": {
+      "title": "Dieser Bereich ist in Arbeit",
+      "description": "Diese Seite wird in Kürze verfügbar sein."
+    }
+  },
   "errors": {
     "unauthenticated": "Sie sind nicht angemeldet oder Ihre Sitzung ist abgelaufen. Bitte melden Sie sich an.",
     "mfa_required": "Zwei-Faktor-Authentifizierung ist erforderlich. Bitte geben Sie Ihren Bestätigungscode ein.",
