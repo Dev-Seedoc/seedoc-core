@@ -178,6 +178,32 @@
       "submit": "Confirm"
     }
   },
+  "staff": {
+    "layout": {
+      "title": "SeeDoc team"
+    },
+    "nav": {
+      "label": "SeeDoc team navigation",
+      "tenants": "Manufacturers",
+      "backToApp": "Back to the app"
+    },
+    "totp": {
+      "setupTitle": "Set up two-factor authentication",
+      "setupDescription": "A second factor is required for the SeeDoc team area. Add the key to your authenticator app (e.g. Microsoft Authenticator, Google Authenticator or 1Password) and then enter the code it shows.",
+      "setupStart": "Start setup",
+      "secretLabel": "Key",
+      "copied": "Key copied.",
+      "openInApp": "Open in authenticator app",
+      "verifyTitle": "Enter verification code",
+      "verifyDescription": "Enter the 6-digit code from your authenticator app.",
+      "code": "Verification code",
+      "submit": "Confirm",
+      "notSetUp": "No authenticator app set up yet?",
+      "setUpNow": "Set up now",
+      "alreadySetUp": "Two-factor authentication is already set up. Please enter your code.",
+      "codeInvalid": "Please enter the 6-digit code."
+    }
+  },
   "errors": {
     "unauthenticated": "You are not authenticated or your session has expired. Please log in.",
     "mfa_required": "Two-factor authentication required. Please enter your verification code.",

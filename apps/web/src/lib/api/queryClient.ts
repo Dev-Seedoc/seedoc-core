@@ -1,6 +1,7 @@
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 
-import { ApiError, showErrorToast } from "./errors";
+import { ApiError, getErrorCode, showErrorToast } from "./errors";
+import { queryKeys } from "./queryKeys";
 
 declare module "@tanstack/react-query" {
   interface Register {
@@ -19,19 +20,27 @@ function shouldRetry(failureCount: number, error: unknown): boolean {
 }
 
 export function createQueryClient(): QueryClient {
-  return new QueryClient({
+  function handleError(error: unknown, meta: { errorToast?: boolean } | undefined) {
+    // The staff session lost its TOTP confirmation: reload `get_me` (mfa_verified → false) and StaffLayout
+    // shows the TOTP screen instead of an error.
+    if (getErrorCode(error) === "mfa_required") {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.me() });
+      return;
+    }
+    if (meta?.errorToast !== false) {
+      showErrorToast(error);
+    }
+  }
+
+  const queryClient = new QueryClient({
     queryCache: new QueryCache({
       onError: (error, query) => {
-        if (query.meta?.errorToast !== false) {
-          showErrorToast(error);
-        }
+        handleError(error, query.meta);
       },
     }),
     mutationCache: new MutationCache({
       onError: (error, _variables, _context, mutation) => {
-        if (mutation.meta?.errorToast !== false) {
-          showErrorToast(error);
-        }
+        handleError(error, mutation.meta);
       },
     }),
     defaultOptions: {
@@ -39,4 +48,5 @@ export function createQueryClient(): QueryClient {
       mutations: { retry: false },
     },
   });
+  return queryClient;
 }

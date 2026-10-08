@@ -178,6 +178,32 @@
       "submit": "Bestätigen"
     }
   },
+  "staff": {
+    "layout": {
+      "title": "SeeDoc-Team"
+    },
+    "nav": {
+      "label": "Navigation SeeDoc-Team",
+      "tenants": "Hersteller",
+      "backToApp": "Zur Anwendung"
+    },
+    "totp": {
+      "setupTitle": "Zwei-Faktor-Authentifizierung einrichten",
+      "setupDescription": "Für den Bereich SeeDoc-Team ist ein zweiter Faktor Pflicht. Fügen Sie den Schlüssel in Ihrer Authenticator-App hinzu (z. B. Microsoft Authenticator, Google Authenticator oder 1Password) und geben Sie anschließend den angezeigten Code ein.",
+      "setupStart": "Einrichtung starten",
+      "secretLabel": "Schlüssel",
+      "copied": "Schlüssel kopiert.",
+      "openInApp": "In Authenticator-App öffnen",
+      "verifyTitle": "Bestätigungscode eingeben",
+      "verifyDescription": "Geben Sie den 6-stelligen Code aus Ihrer Authenticator-App ein.",
+      "code": "Bestätigungscode",
+      "submit": "Bestätigen",
+      "notSetUp": "Noch keine Authenticator-App eingerichtet?",
+      "setUpNow": "Jetzt einrichten",
+      "alreadySetUp": "Die Zwei-Faktor-Authentifizierung ist bereits eingerichtet. Bitte geben Sie Ihren Code ein.",
+      "codeInvalid": "Bitte geben Sie den 6-stelligen Code ein."
+    }
+  },
   "errors": {
     "unauthenticated": "Sie sind nicht angemeldet oder Ihre Sitzung ist abgelaufen. Bitte melden Sie sich an.",
     "mfa_required": "Zwei-Faktor-Authentifizierung ist erforderlich. Bitte geben Sie Ihren Bestätigungscode ein.",

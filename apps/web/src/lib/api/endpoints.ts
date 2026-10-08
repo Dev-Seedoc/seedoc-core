@@ -1,5 +1,5 @@
 // One function per operation_id, named camelCase(operation_id) (docs/API.md). Each returns the response body or
-// throws ApiError. TOTP endpoints (`setup_totp`, `verify_totp`) are added with the staff screens (M0-B6).
+// throws ApiError.
 import { client } from "./client";
 import { toApiError } from "./errors";
 import type {
@@ -11,6 +11,8 @@ import type {
   PasswordResetConfirmRequest,
   PasswordResetRequest,
   ReauthenticateRequest,
+  TotpSetupRead,
+  VerifyTotpRequest,
 } from "./types";
 
 interface ApiResult<T> {
@@ -73,4 +75,12 @@ export function getInvitation(token: string): Promise<InvitationPreview> {
 
 export function acceptInvitation(token: string, body: AcceptInvitationRequest): Promise<MeRead> {
   return unwrap(client.POST("/api/v1/auth/invitations/{token}/accept", { params: { path: { token } }, body }));
+}
+
+export function setupTotp(): Promise<TotpSetupRead> {
+  return unwrap(client.POST("/api/v1/auth/totp/setup"));
+}
+
+export function verifyTotp(body: VerifyTotpRequest): Promise<void> {
+  return unwrapEmpty(client.POST("/api/v1/auth/totp/verify", { body }));
 }
