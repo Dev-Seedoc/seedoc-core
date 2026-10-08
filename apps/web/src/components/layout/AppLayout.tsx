@@ -1,5 +1,4 @@
 import { Building2, Loader2, TriangleAlert } from "lucide-react";
-import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate, Outlet, useLocation } from "react-router";
 
@@ -9,11 +8,8 @@ import { getErrorCode } from "@/lib/api/errors";
 import { useMe } from "@/lib/api/hooks/auth";
 
 import { AppSidebar } from "./AppSidebar";
+import { FullScreen } from "./FullScreen";
 import { TopBar } from "./TopBar";
-
-function FullScreen({ children }: { children: ReactNode }) {
-  return <div className="flex min-h-svh items-center justify-center p-6">{children}</div>;
-}
 
 // Frame of the manufacturer app (ARCHITECTURE §6: sidebar layout, desktop-first). Pages render in <Outlet />.
 // Only users with at least one tenant membership see it; everyone else is sent where they belong.

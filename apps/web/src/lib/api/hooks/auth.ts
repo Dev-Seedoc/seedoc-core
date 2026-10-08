@@ -10,6 +10,8 @@ import {
   logout,
   reauthenticate,
   requestPasswordReset,
+  setupTotp,
+  verifyTotp,
 } from "../endpoints";
 import { queryKeys } from "../queryKeys";
 import type { AcceptInvitationRequest, MeRead } from "../types";
@@ -90,5 +92,20 @@ export function useAcceptInvitation(token: string) {
     onSuccess: (me: MeRead) => {
       queryClient.setQueryData(queryKeys.auth.me(), me);
     },
+  });
+}
+
+export function useSetupTotp() {
+  // TotpScreen shows errors next to the form.
+  return useMutation({ mutationFn: setupTotp, meta: { errorToast: false } });
+}
+
+export function useVerifyTotp() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: verifyTotp,
+    meta: { errorToast: false },
+    // The session is now MFA-verified: reload `get_me` so `mfa_verified` becomes true.
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.auth.me() }),
   });
 }

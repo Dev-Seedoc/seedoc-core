@@ -42,6 +42,11 @@
       "customer": "Nur Kunden",
       "internal": "Nur intern"
     },
+    "memberRole": {
+      "owner": "Inhaber",
+      "admin": "Administrator",
+      "editor": "Redakteur"
+    },
     "docType": {
       "operating_manual": "Betriebsanleitung",
       "installation_manual": "Montageanleitung",
@@ -176,6 +181,81 @@
       "description": "Für diese Aktion müssen Sie Ihr Passwort erneut eingeben.",
       "password": "Passwort",
       "submit": "Bestätigen"
+    }
+  },
+  "staff": {
+    "layout": {
+      "title": "SeeDoc-Team"
+    },
+    "nav": {
+      "label": "Navigation SeeDoc-Team",
+      "tenants": "Hersteller",
+      "backToApp": "Zur Anwendung"
+    },
+    "totp": {
+      "setupTitle": "Zwei-Faktor-Authentifizierung einrichten",
+      "setupDescription": "Für den Bereich SeeDoc-Team ist ein zweiter Faktor Pflicht. Fügen Sie den Schlüssel in Ihrer Authenticator-App hinzu (z. B. Microsoft Authenticator, Google Authenticator oder 1Password) und geben Sie anschließend den angezeigten Code ein.",
+      "setupStart": "Einrichtung starten",
+      "secretLabel": "Schlüssel",
+      "copied": "Schlüssel kopiert.",
+      "openInApp": "In Authenticator-App öffnen",
+      "verifyTitle": "Bestätigungscode eingeben",
+      "verifyDescription": "Geben Sie den 6-stelligen Code aus Ihrer Authenticator-App ein.",
+      "code": "Bestätigungscode",
+      "submit": "Bestätigen",
+      "notSetUp": "Noch keine Authenticator-App eingerichtet?",
+      "setUpNow": "Jetzt einrichten",
+      "alreadySetUp": "Die Zwei-Faktor-Authentifizierung ist bereits eingerichtet. Bitte geben Sie Ihren Code ein.",
+      "codeInvalid": "Bitte geben Sie den 6-stelligen Code ein.",
+      "codeWrong": "Der Code ist falsch oder abgelaufen."
+    },
+    "tenants": {
+      "title": "Hersteller",
+      "create": "Hersteller anlegen",
+      "name": "Name",
+      "slug": "Kurzname",
+      "status": "Status",
+      "memberCount": "Mitglieder",
+      "createdAt": "Angelegt am",
+      "loadMore": "Mehr laden",
+      "emptyTitle": "Noch keine Hersteller",
+      "emptyDescription": "Legen Sie den ersten Hersteller an. Der Inhaber erhält eine Einladung per E-Mail."
+    },
+    "createTenant": {
+      "title": "Hersteller anlegen",
+      "description": "Der Inhaber erhält eine Einladung per E-Mail und legt dabei sein Passwort fest.",
+      "name": "Name",
+      "slug": "Kurzname (Slug)",
+      "slugHint": "Nur Kleinbuchstaben, Ziffern und Bindestriche, z. B. mueller-maschinenbau.",
+      "ownerEmail": "E-Mail-Adresse des Inhabers",
+      "submit": "Anlegen",
+      "created": "Hersteller angelegt. Die Einladung an {{email}} wurde versendet.",
+      "slugTaken": "Dieser Kurzname ist bereits vergeben.",
+      "nameRequired": "Bitte geben Sie einen Namen ein.",
+      "nameTooLong": "Der Name darf höchstens 200 Zeichen lang sein.",
+      "slugInvalid": "Der Kurzname muss 2 bis 63 Zeichen lang sein und darf nur Kleinbuchstaben, Ziffern und einzelne Bindestriche enthalten."
+    },
+    "tenantDetail": {
+      "back": "Hersteller",
+      "slug": "Kurzname",
+      "createdAt": "Angelegt am",
+      "updatedAt": "Zuletzt geändert",
+      "members": "Mitglieder",
+      "membersEmpty": "Noch keine Mitglieder.",
+      "invitations": "Offene Einladungen",
+      "invitationsEmpty": "Keine offenen Einladungen.",
+      "name": "Name",
+      "email": "E-Mail-Adresse",
+      "role": "Rolle",
+      "expiresAt": "Gültig bis",
+      "deactivate": "Deaktivieren",
+      "activate": "Aktivieren",
+      "deactivateTitle": "Hersteller deaktivieren?",
+      "deactivateDescription": "Alle Mitglieder verlieren den Zugriff auf die Anwendung, und die QR-Portale dieses Herstellers sind nicht mehr erreichbar. Sie können den Hersteller jederzeit wieder aktivieren.",
+      "activateTitle": "Hersteller aktivieren?",
+      "activateDescription": "Die Mitglieder erhalten wieder Zugriff auf die Anwendung, und die QR-Portale sind wieder erreichbar.",
+      "notFoundTitle": "Hersteller nicht gefunden",
+      "notFoundDescription": "Bitte prüfen Sie den Link oder wählen Sie den Hersteller in der Liste aus."
     }
   },
   "errors": {

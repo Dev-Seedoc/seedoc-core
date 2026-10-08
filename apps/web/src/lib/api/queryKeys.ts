@@ -9,4 +9,10 @@ export const queryKeys = {
   tenants: {
     all: (tenantId: string) => ["tenants", tenantId] as const,
   },
+  // Staff data is not tenant-scoped (admin DB engine); logout drops it like every non-auth query.
+  staff: {
+    all: () => ["staff"] as const,
+    tenantList: () => ["staff", "tenants", "list"] as const,
+    tenant: (tenantId: string) => ["staff", "tenants", tenantId] as const,
+  },
 } as const;

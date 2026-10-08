@@ -9,6 +9,9 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { PagePlaceholder } from "@/components/layout/PagePlaceholder";
 import type { RouteHandle } from "@/components/layout/routeHandle";
 import { ShellPlaceholder } from "@/components/layout/ShellPlaceholder";
+import { StaffLayout } from "@/staff/StaffLayout";
+import { StaffTenantDetailPage } from "@/staff/StaffTenantDetailPage";
+import { StaffTenantsPage } from "@/staff/StaffTenantsPage";
 
 // Route areas (ARCHITECTURE §6, NAMING §7): manufacturer app inside AppLayout; portal (/m, /s), operator (/operator),
 // staff (/staff) and auth pages never get the manufacturer frame. Placeholders are replaced per roadmap task.
@@ -48,6 +51,14 @@ export const routes: RouteObject[] = [
       { path: "/forgot-password", element: <ForgotPasswordPage /> },
       { path: "/reset-password/:token", element: <ResetPasswordPage /> },
       { path: "/invite/:token", element: <AcceptInvitationPage /> },
+    ],
+  },
+  {
+    path: "/staff",
+    element: <StaffLayout />,
+    children: [
+      { index: true, element: <StaffTenantsPage /> },
+      { path: "tenants/:tenantId", element: <StaffTenantDetailPage /> },
     ],
   },
   { path: "*", element: <ShellPlaceholder /> },

@@ -42,6 +42,11 @@
       "customer": "Customer",
       "internal": "Internal"
     },
+    "memberRole": {
+      "owner": "Owner",
+      "admin": "Administrator",
+      "editor": "Editor"
+    },
     "docType": {
       "operating_manual": "Operating manual",
       "installation_manual": "Installation manual",
@@ -176,6 +181,81 @@
       "description": "Please enter your password again for this action.",
       "password": "Password",
       "submit": "Confirm"
+    }
+  },
+  "staff": {
+    "layout": {
+      "title": "SeeDoc team"
+    },
+    "nav": {
+      "label": "SeeDoc team navigation",
+      "tenants": "Manufacturers",
+      "backToApp": "Back to the app"
+    },
+    "totp": {
+      "setupTitle": "Set up two-factor authentication",
+      "setupDescription": "A second factor is required for the SeeDoc team area. Add the key to your authenticator app (e.g. Microsoft Authenticator, Google Authenticator or 1Password) and then enter the code it shows.",
+      "setupStart": "Start setup",
+      "secretLabel": "Key",
+      "copied": "Key copied.",
+      "openInApp": "Open in authenticator app",
+      "verifyTitle": "Enter verification code",
+      "verifyDescription": "Enter the 6-digit code from your authenticator app.",
+      "code": "Verification code",
+      "submit": "Confirm",
+      "notSetUp": "No authenticator app set up yet?",
+      "setUpNow": "Set up now",
+      "alreadySetUp": "Two-factor authentication is already set up. Please enter your code.",
+      "codeInvalid": "Please enter the 6-digit code.",
+      "codeWrong": "The code is wrong or has expired."
+    },
+    "tenants": {
+      "title": "Manufacturers",
+      "create": "Create manufacturer",
+      "name": "Name",
+      "slug": "Short name",
+      "status": "Status",
+      "memberCount": "Members",
+      "createdAt": "Created on",
+      "loadMore": "Load more",
+      "emptyTitle": "No manufacturers yet",
+      "emptyDescription": "Create the first manufacturer. The owner receives an invitation by e-mail."
+    },
+    "createTenant": {
+      "title": "Create manufacturer",
+      "description": "The owner receives an invitation by e-mail and sets a password when accepting it.",
+      "name": "Name",
+      "slug": "Short name (slug)",
+      "slugHint": "Lowercase letters, digits and hyphens only, e.g. mueller-maschinenbau.",
+      "ownerEmail": "Owner's e-mail address",
+      "submit": "Create",
+      "created": "Manufacturer created. The invitation to {{email}} has been sent.",
+      "slugTaken": "This short name is already taken.",
+      "nameRequired": "Please enter a name.",
+      "nameTooLong": "The name must not be longer than 200 characters.",
+      "slugInvalid": "The short name must be 2 to 63 characters long and may only contain lowercase letters, digits and single hyphens."
+    },
+    "tenantDetail": {
+      "back": "Manufacturers",
+      "slug": "Short name",
+      "createdAt": "Created on",
+      "updatedAt": "Last changed",
+      "members": "Members",
+      "membersEmpty": "No members yet.",
+      "invitations": "Open invitations",
+      "invitationsEmpty": "No open invitations.",
+      "name": "Name",
+      "email": "E-mail address",
+      "role": "Role",
+      "expiresAt": "Valid until",
+      "deactivate": "Deactivate",
+      "activate": "Activate",
+      "deactivateTitle": "Deactivate manufacturer?",
+      "deactivateDescription": "All members lose access to the application and this manufacturer's QR portals are no longer reachable. You can activate the manufacturer again at any time.",
+      "activateTitle": "Activate manufacturer?",
+      "activateDescription": "Members regain access to the application and the QR portals are reachable again.",
+      "notFoundTitle": "Manufacturer not found",
+      "notFoundDescription": "Please check the link or choose the manufacturer from the list."
     }
   },
   "errors": {
