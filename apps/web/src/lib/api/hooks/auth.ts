@@ -23,6 +23,8 @@ export function useLogin() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: login,
+    // LoginPage shows wrong-password and rate-limit errors next to the form.
+    meta: { errorToast: false },
     onSuccess: (me: MeRead) => {
       queryClient.setQueryData(queryKeys.auth.me(), me);
     },
@@ -45,7 +47,8 @@ export function useReauthenticate() {
 }
 
 export function useRequestPasswordReset() {
-  return useMutation({ mutationFn: requestPasswordReset });
+  // ForgotPasswordPage shows errors next to the form.
+  return useMutation({ mutationFn: requestPasswordReset, meta: { errorToast: false } });
 }
 
 export function useConfirmPasswordReset() {

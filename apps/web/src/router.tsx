@@ -1,5 +1,8 @@
 import { createBrowserRouter, type RouteObject } from "react-router";
 
+import { AuthLayout } from "@/auth/AuthLayout";
+import { ForgotPasswordPage } from "@/auth/ForgotPasswordPage";
+import { LoginPage } from "@/auth/LoginPage";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PagePlaceholder } from "@/components/layout/PagePlaceholder";
 import type { RouteHandle } from "@/components/layout/routeHandle";
@@ -36,8 +39,13 @@ export const routes: RouteObject[] = [
       },
     ],
   },
-  // LoginPage arrives with M0-B5.
-  { path: "/login", element: <ShellPlaceholder /> },
+  {
+    element: <AuthLayout />,
+    children: [
+      { path: "/login", element: <LoginPage /> },
+      { path: "/forgot-password", element: <ForgotPasswordPage /> },
+    ],
+  },
   { path: "*", element: <ShellPlaceholder /> },
 ];
 

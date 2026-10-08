@@ -118,6 +118,28 @@
       "description": "Diese Seite wird in Kürze verfügbar sein."
     }
   },
+  "auth": {
+    "login": {
+      "title": "Anmelden",
+      "description": "Melden Sie sich mit Ihrer E-Mail-Adresse und Ihrem Passwort an.",
+      "email": "E-Mail-Adresse",
+      "password": "Passwort",
+      "submit": "Anmelden",
+      "forgotPassword": "Passwort vergessen?"
+    },
+    "forgotPassword": {
+      "title": "Passwort vergessen",
+      "description": "Geben Sie Ihre E-Mail-Adresse ein. Wir senden Ihnen einen Link zum Zurücksetzen Ihres Passworts.",
+      "submit": "Link senden",
+      "sentTitle": "Bitte prüfen Sie Ihr Postfach",
+      "sentDescription": "Falls ein Konto mit dieser E-Mail-Adresse existiert, haben wir Ihnen einen Link zum Zurücksetzen gesendet. Der Link ist 1 Stunde gültig.",
+      "backToLogin": "Zurück zur Anmeldung"
+    },
+    "validation": {
+      "emailInvalid": "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
+      "passwordRequired": "Bitte geben Sie Ihr Passwort ein."
+    }
+  },
   "errors": {
     "unauthenticated": "Sie sind nicht angemeldet oder Ihre Sitzung ist abgelaufen. Bitte melden Sie sich an.",
     "mfa_required": "Zwei-Faktor-Authentifizierung ist erforderlich. Bitte geben Sie Ihren Bestätigungscode ein.",

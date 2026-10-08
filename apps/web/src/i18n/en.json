@@ -118,6 +118,28 @@
       "description": "This page will be available soon."
     }
   },
+  "auth": {
+    "login": {
+      "title": "Log in",
+      "description": "Log in with your e-mail address and password.",
+      "email": "E-mail address",
+      "password": "Password",
+      "submit": "Log in",
+      "forgotPassword": "Forgot password?"
+    },
+    "forgotPassword": {
+      "title": "Forgot password",
+      "description": "Enter your e-mail address. We will send you a link to reset your password.",
+      "submit": "Send link",
+      "sentTitle": "Please check your inbox",
+      "sentDescription": "If an account with this e-mail address exists, we have sent you a link to reset your password. The link is valid for 1 hour.",
+      "backToLogin": "Back to login"
+    },
+    "validation": {
+      "emailInvalid": "Please enter a valid e-mail address.",
+      "passwordRequired": "Please enter your password."
+    }
+  },
   "errors": {
     "unauthenticated": "You are not authenticated or your session has expired. Please log in.",
     "mfa_required": "Two-factor authentication required. Please enter your verification code.",
