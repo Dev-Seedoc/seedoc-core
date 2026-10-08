@@ -21,12 +21,21 @@ function createLoginSchema(t: TFunction) {
 
 type LoginValues = z.infer<ReturnType<typeof createLoginSchema>>;
 
-// AppLayout sends logged-out users here with `state.from` = the page they wanted.
+function stringField(value: object, key: string): string {
+  const field: unknown = key in value ? (value as Record<string, unknown>)[key] : undefined;
+  return typeof field === "string" ? field : "";
+}
+
+// AppLayout sends logged-out users here with `state.from` = the page they wanted. Search and hash are kept, so
+// e.g. `/products/42?tab=releases` comes back to the same tab. Only same-app paths are accepted ("/x", not "//x").
 function getReturnPath(state: unknown): string {
   if (typeof state === "object" && state !== null && "from" in state) {
     const from = state.from;
-    if (typeof from === "object" && from !== null && "pathname" in from && typeof from.pathname === "string") {
-      return from.pathname;
+    if (typeof from === "object" && from !== null) {
+      const pathname = stringField(from, "pathname");
+      if (pathname.startsWith("/") && !pathname.startsWith("//") && pathname !== "/login") {
+        return pathname + stringField(from, "search") + stringField(from, "hash");
+      }
     }
   }
   return "/";
