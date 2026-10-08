@@ -12,14 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getErrorCode, getErrorMessage } from "@/lib/api/errors";
 import { useSetupTotp, useVerifyTotp } from "@/lib/api/hooks/auth";
+import type { MeRead } from "@/lib/api/types";
 
 type TotpMode = "verify" | "setup";
 
-// TODO(decision): Raven adds `has_totp` to MeRead (agreed 2026-10-08). Until then every staff user starts in
-// "verify" and can switch to "setup". Afterwards: pass `me: MeRead` into TotpScreen and this function, and
-// `return me.has_totp ? "verify" : "setup";`
-function getInitialTotpMode(): TotpMode {
-  return "verify";
+// Staff who finished TOTP setup enter a code; everyone else sets it up first (MeRead.has_totp).
+function getInitialTotpMode(me: MeRead): TotpMode {
+  return me.has_totp ? "verify" : "setup";
 }
 
 function removeSpaces(value: string): string {
@@ -162,9 +161,9 @@ function SetupSteps({ onAlreadySetUp }: { onAlreadySetUp: () => void }) {
 }
 
 // Shown instead of a staff page until this session is confirmed with a TOTP code (BUSINESS_RULES §2).
-export function TotpScreen() {
+export function TotpScreen({ me }: { me: MeRead }) {
   const { t } = useTranslation();
-  const [mode, setMode] = useState<TotpMode>(getInitialTotpMode);
+  const [mode, setMode] = useState<TotpMode>(() => getInitialTotpMode(me));
   const [isAlreadySetUp, setIsAlreadySetUp] = useState(false);
 
   function handleAlreadySetUp() {
@@ -189,25 +188,11 @@ export function TotpScreen() {
         {mode === "setup" ? (
           <SetupSteps onAlreadySetUp={handleAlreadySetUp} />
         ) : (
-          <>
-            <CodeForm
-              onNotSetUp={() => {
-                setMode("setup");
-              }}
-            />
-            <p className="text-muted-foreground text-center text-sm">
-              {t("staff.totp.notSetUp")}{" "}
-              <button
-                type="button"
-                className="text-foreground underline underline-offset-4"
-                onClick={() => {
-                  setMode("setup");
-                }}
-              >
-                {t("staff.totp.setUpNow")}
-              </button>
-            </p>
-          </>
+          <CodeForm
+            onNotSetUp={() => {
+              setMode("setup");
+            }}
+          />
         )}
       </main>
     </div>

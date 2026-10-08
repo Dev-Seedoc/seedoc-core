@@ -49,7 +49,7 @@ export function StaffLayout() {
   }
 
   if (!me.mfa_verified) {
-    return <TotpScreen />;
+    return <TotpScreen me={me} />;
   }
 
   return (
