@@ -1,0 +1,18 @@
+Einladung zu {{ tenant_name }} auf SeeDoc
+
+Guten Tag,
+
+Sie wurden eingeladen, dem Team von {{ tenant_name }} auf SeeDoc beizutreten. Mit SeeDoc verwalten Sie die
+Dokumentation Ihrer Maschinen und stellen sie Ihren Kunden über QR-Codes bereit.
+
+Öffnen Sie diesen Link, um die Einladung anzunehmen:
+
+{{ invitation_url }}
+
+Der Link ist 7 Tage gültig und kann nur einmal verwendet werden.
+
+Falls Sie diese Einladung nicht erwartet haben, können Sie diese E-Mail ignorieren. Ohne Ihre Bestätigung wird kein
+Konto angelegt.
+
+--
+SeeDoc
