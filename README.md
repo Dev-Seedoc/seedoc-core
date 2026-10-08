@@ -464,7 +464,9 @@ python -c "import os,base64;print(base64.b64encode(os.urandom(32)).decode())"
 | FastAPI skeleton: settings, all error codes, `RequestContext`, role/fresh-auth checks, `GET /api/v1/health` | done (M0-A4) |
 | Web skeleton: Vite, React 19, TS strict, Tailwind 4, shadcn base, React Router, TanStack Query, Vitest | done (M0-B1) |
 | `.github/CODEOWNERS`, PR template, "Task brief" issue template | done |
-| Migration `0001_identity`, auth, staff, seed | **next** (M0-A5 … M0-A10, M0-B2 …) — see [Roadmap](#18-roadmap) |
+| Migration `0001_identity` (RLS), auth API, i18n, API client | done (M0-A5, M0-A6, M0-B2, M0-B3) |
+| Staff API + TOTP, `make seed` demo data | done (M0-A8, M0-A10) |
+| Mail, staging, app shell, auth + staff screens | **next** (M0-A7, M0-A9, M0-B4 … M0-B7) — see [Roadmap](#18-roadmap) |
 
 ### 14.2 Install these first
 
@@ -550,9 +552,15 @@ creates the three roles (`seedoc_owner`, `seedoc_app`, `seedoc_admin`) and the e
 
 ```bash
 make migrate
+make seed
 ```
 
-Without make: `cd apps/api && uv run alembic upgrade head`.
+Without make: `cd apps/api && uv run alembic upgrade head && uv run python -m seedoc.seed`.
+
+`make seed` creates the tenant "Demo Maschinenbau GmbH" with `owner@`, `admin@`, `editor@demo.example.com` and the staff
+user `staff@seedoc.example.com`. It prints the passwords (and the staff TOTP link) **only once**, so store them.
+Running it again changes nothing; `make seed ARGS=--reset-passwords` prints new passwords. Fill the three secrets in
+`.env` first (§13), otherwise the staff user gets no TOTP and cannot use `/staff`.
 
 **7. Start the API and the web app**
 
