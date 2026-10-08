@@ -8,7 +8,7 @@ help:
 	@echo "up / down  start / stop postgres, minio, mailpit"
 	@echo "dev        api on :8000 and web on :5173 (mailpit UI on :8025)"
 	@echo "migrate    alembic upgrade head (as seedoc_owner)"
-	@echo "seed       demo tenant, owner and staff user"
+	@echo "seed       demo tenant + owner/admin/editor + staff user (ARGS=--reset-passwords for new passwords)"
 	@echo "test       backend + frontend tests"
 	@echo "lint       ruff + eslint;  typecheck: pyright + tsc"
 	@echo "check-branch BRANCH=DevArea-Jamshid   run all checks on a pushed branch before merging it into main"
@@ -36,7 +36,7 @@ migrate:
 	$(API) uv run alembic upgrade head
 
 seed:
-	@echo "seed: not implemented yet (ROADMAP M0-A10)"
+	$(API) uv run python -m seedoc.seed $(ARGS)
 
 test: test-api test-web
 

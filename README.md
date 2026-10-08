@@ -464,7 +464,9 @@ python -c "import os,base64;print(base64.b64encode(os.urandom(32)).decode())"
 | FastAPI skeleton: settings, all error codes, `RequestContext`, role/fresh-auth checks, `GET /api/v1/health` | done (M0-A4) |
 | Web skeleton: Vite, React 19, TS strict, Tailwind 4, shadcn base, React Router, TanStack Query, Vitest | done (M0-B1) |
 | `.github/CODEOWNERS`, PR template, "Task brief" issue template | done |
-| Migration `0001_identity`, auth, staff, seed | **next** (M0-A5 … M0-A10, M0-B2 …) — see [Roadmap](#18-roadmap) |
+| Migration `0001_identity` (RLS), auth API, i18n, API client | done (M0-A5, M0-A6, M0-B2, M0-B3) |
+| Staff API + TOTP, `make seed` demo data | done (M0-A8, M0-A10) |
+| Mail, staging, app shell, auth + staff screens | **next** (M0-A7, M0-A9, M0-B4 … M0-B7) — see [Roadmap](#18-roadmap) |
 
 ### 14.2 Install these first
 
@@ -550,9 +552,15 @@ creates the three roles (`seedoc_owner`, `seedoc_app`, `seedoc_admin`) and the e
 
 ```bash
 make migrate
+make seed
 ```
 
-Without make: `cd apps/api && uv run alembic upgrade head`.
+Without make: `cd apps/api && uv run alembic upgrade head && uv run python -m seedoc.seed`.
+
+`make seed` creates the tenant "Demo Maschinenbau GmbH" with `owner@`, `admin@`, `editor@demo.example.com` and the staff
+user `staff@seedoc.example.com`. It prints the passwords (and the staff TOTP link) **only once**, so store them.
+Running it again changes nothing; `make seed ARGS=--reset-passwords` prints new passwords. Fill the three secrets in
+`.env` first (§13), otherwise the staff user gets no TOTP and cannot use `/staff`.
 
 **7. Start the API and the web app**
 
@@ -594,32 +602,43 @@ make test
 
 ### 14.5 Day-to-day: branches and merging
 
-Each developer has **one branch** and pushes only there. Nobody pushes to `main` directly.
+Each developer has **one branch** and pushes only there. Nobody pushes to `main` directly. Work reaches `main` in
+two steps, so integration problems show up on `DevArea-Ritik`, never on `main`:
 
-| Branch | Who pushes | Merged into `main` by |
+```
+DevArea-Jamshid ──(1) merge + test──▶ DevArea-Ritik ──(2) check-branch──▶ main (fast-forward)
+```
+
+| Branch | Who pushes | Goes into |
 | --- | --- | --- |
-| `DevArea-Jamshid` | Jamshid | Raven, after the branch passes all checks |
-| `DevArea-Ritik` | Raven | Raven |
+| `DevArea-Jamshid` | Jamshid | `DevArea-Ritik` (Raven merges it after the integration tests pass) |
+| `DevArea-Ritik` | Raven | `main` (fast-forward, after `make check-branch BRANCH=DevArea-Ritik` passes) |
+
+Jamshid, every day:
 
 ```bash
-# start of the day: pick up what was merged into main
 git switch DevArea-Jamshid
 git pull
-git merge origin/main
+git merge origin/main           # pick up everything already integrated
 # … work, then before pushing:
 make lint typecheck test        # Docker must be running, otherwise DB tests are only skipped
 git push                        # CI runs on every push to DevArea-* branches
 ```
 
-Merging into `main` (Raven):
+Raven, to integrate:
 
 ```bash
-make check-branch BRANCH=DevArea-Jamshid   # all CI checks on the branch exactly as pushed, in a temp worktree
+make check-branch BRANCH=DevArea-Jamshid   # (optional first look) his branch alone, as pushed
+git switch DevArea-Ritik && git pull
+git merge origin/DevArea-Jamshid           # (1) integrate; fix conflicts here, never on main
+make lint typecheck test                   # integration tests on the combined code
+git push
+make check-branch BRANCH=DevArea-Ritik     # (2) all CI checks on the pushed combined branch
+git push origin origin/DevArea-Ritik:refs/heads/main   # only after ALL CHECKS PASSED (fast-forward)
 ```
 
-Only when it prints `ALL CHECKS PASSED` (and main can be fast-forwarded), `main` is moved to the branch — via a PR
-on GitHub or a fast-forward push. If main has commits the branch lacks, the branch owner runs `git merge origin/main`
-first and pushes again.
+If a check fails, `main` is not touched: fix it on `DevArea-Ritik` (or ask Jamshid to fix it on his branch) and run
+the steps again.
 
 ### 14.6 Troubleshooting
 
