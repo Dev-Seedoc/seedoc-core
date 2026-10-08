@@ -84,6 +84,100 @@
       "zh": "Chinese"
     }
   },
+  "shell": {
+    "nav": {
+      "label": "Main navigation",
+      "dashboard": "Overview",
+      "documents": "Documents",
+      "products": "Products",
+      "customers": "Customers",
+      "settings": "Settings",
+      "staff": "SeeDoc team",
+      "operator": "Operator"
+    },
+    "breadcrumbs": {
+      "label": "Breadcrumb"
+    },
+    "tenantSwitcher": {
+      "label": "Switch manufacturer"
+    },
+    "userMenu": {
+      "label": "User menu",
+      "logout": "Log out"
+    },
+    "loading": "Loading …",
+    "noTenant": {
+      "title": "You are not assigned to a manufacturer yet",
+      "description": "Please ask your administrator to invite you."
+    },
+    "loadFailed": {
+      "title": "The application could not be loaded"
+    },
+    "placeholder": {
+      "title": "This area is under construction",
+      "description": "This page will be available soon."
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Log in",
+      "description": "Log in with your e-mail address and password.",
+      "email": "E-mail address",
+      "password": "Password",
+      "submit": "Log in",
+      "forgotPassword": "Forgot password?"
+    },
+    "forgotPassword": {
+      "title": "Forgot password",
+      "description": "Enter your e-mail address. We will send you a link to reset your password.",
+      "submit": "Send link",
+      "sentTitle": "Please check your inbox",
+      "sentDescription": "If an account with this e-mail address exists, we have sent you a link to reset your password. The link is valid for 1 hour.",
+      "backToLogin": "Back to login"
+    },
+    "validation": {
+      "emailInvalid": "Please enter a valid e-mail address.",
+      "passwordRequired": "Please enter your password.",
+      "passwordLength": "The password must be between 12 and 128 characters long.",
+      "passwordMismatch": "The passwords do not match."
+    },
+    "newPassword": {
+      "password": "New password",
+      "passwordRepeat": "Repeat password",
+      "hint": "At least 12 characters."
+    },
+    "resetPassword": {
+      "title": "Set a new password",
+      "description": "Choose a new password for your account.",
+      "submit": "Save password",
+      "successTitle": "Your password has been changed",
+      "successDescription": "Please log in with your new password. For security reasons you have been logged out on all devices.",
+      "toLogin": "Go to login",
+      "invalidTitle": "This link is invalid or has expired",
+      "invalidDescription": "Reset links are valid for 1 hour and can only be used once.",
+      "requestNew": "Request a new link"
+    },
+    "acceptInvitation": {
+      "title": "Invitation to {{name}}",
+      "forEmail": "This invitation is for {{email}}.",
+      "fullName": "Name (optional)",
+      "createSubmit": "Create account and join",
+      "existingAccount": "You already have a SeeDoc account. Please confirm the invitation with your password.",
+      "password": "Password",
+      "acceptSubmit": "Accept invitation",
+      "wrongUserTitle": "You are logged in with a different account",
+      "wrongUserDescription": "This invitation is for {{invitedEmail}}, but you are logged in as {{currentEmail}}. Please log out to accept the invitation.",
+      "logout": "Log out",
+      "invalidTitle": "This invitation is no longer valid",
+      "invalidDescription": "The invitation has expired, was already used or was revoked. Please ask for a new invitation."
+    },
+    "reauth": {
+      "title": "Please confirm your password",
+      "description": "Please enter your password again for this action.",
+      "password": "Password",
+      "submit": "Confirm"
+    }
+  },
   "errors": {
     "unauthenticated": "You are not authenticated or your session has expired. Please log in.",
     "mfa_required": "Two-factor authentication required. Please enter your verification code.",
