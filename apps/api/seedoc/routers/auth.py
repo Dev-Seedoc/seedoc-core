@@ -1,9 +1,6 @@
-from typing import NoReturn
-
 from fastapi import APIRouter, Request, Response, status
 
 from seedoc.deps import Ctx, DbSession
-from seedoc.errors import AppError, ErrorCode
 from seedoc.schemas.auth import (
     AcceptInvitationRequest,
     InvitationPreview,
@@ -35,10 +32,6 @@ def _set_session_cookie(response: Response, token: str) -> None:
 
 def _clear_session_cookie(response: Response) -> None:
     response.delete_cookie(SESSION_COOKIE, path="/", httponly=True, secure=True, samesite="lax")
-
-
-def _not_implemented() -> NoReturn:
-    raise AppError(ErrorCode.INTERNAL_ERROR, "not implemented")
 
 
 @router.post("/login")
@@ -92,10 +85,10 @@ async def accept_invitation(
 
 
 @router.post("/totp/setup")
-async def setup_totp() -> TotpSetupRead:
-    _not_implemented()  # M0-A8
+async def setup_totp(db: DbSession, ctx: Ctx) -> TotpSetupRead:
+    return await auth_service.setup_totp(db, ctx)
 
 
 @router.post("/totp/verify", status_code=status.HTTP_204_NO_CONTENT)
-async def verify_totp(body: VerifyTotpRequest) -> None:
-    _not_implemented()  # M0-A8
+async def verify_totp(body: VerifyTotpRequest, db: DbSession, ctx: Ctx) -> None:
+    await auth_service.verify_totp(db, ctx, body)

@@ -23,12 +23,21 @@ from seedoc.schemas.auth import (
     PasswordResetRequest,
     ReauthenticateRequest,
     TenantMembershipRead,
+    TotpSetupRead,
     UserRead,
+    VerifyTotpRequest,
 )
 from seedoc.security.passwords import hash_password, verify_password_or_dummy
 from seedoc.security.rate_limit import check_login_rate_limit, record_failed_login, reset_failed_login
 from seedoc.security.sessions import create_session, revoke_all_user_sessions, revoke_session
 from seedoc.security.tokens import hash_token, new_token
+from seedoc.security.totp import (
+    decrypt_totp_secret,
+    encrypt_totp_secret,
+    get_totp_uri,
+    new_totp_secret,
+    verify_totp_code,
+)
 
 PASSWORD_RESET_TTL = timedelta(hours=1)
 
@@ -228,6 +237,54 @@ async def accept_invitation(
         record_failed_login(wrong.subject, ctx.ip_hash)
         raise AppError(ErrorCode.INVALID_CREDENTIALS) from None
     return session_token, me
+
+
+async def setup_totp(db: AsyncSession, ctx: RequestContext) -> TotpSetupRead:
+    """Start TOTP enrolment for a staff user: store a new encrypted secret, return the `otpauth://` URI.
+
+    Enrolment is only possible while TOTP is not yet active. Once `verify_totp` succeeded the secret can no longer be
+    replaced through the API (a stolen password must not be enough to move the second factor to another phone).
+    """
+    user_id = _require_staff_session(ctx)
+    async with db.begin():
+        user = await db.get(User, user_id)
+        if user is None:
+            raise AppError(ErrorCode.UNAUTHENTICATED)
+        if user.totp_enabled_at is not None:
+            raise AppError(ErrorCode.CONFLICT, "TOTP is already set up")
+        secret = new_totp_secret()
+        user.totp_secret_enc = encrypt_totp_secret(secret)
+        return TotpSetupRead(otpauth_uri=get_totp_uri(secret, user.email))
+
+
+async def verify_totp(db: AsyncSession, ctx: RequestContext, body: VerifyTotpRequest) -> None:
+    """Check a TOTP code; on success the session counts as MFA-verified and enrolment (if pending) is complete."""
+    user_id = _require_staff_session(ctx)
+    subject = f"totp:{user_id}"
+    check_login_rate_limit(subject, ctx.ip_hash)
+    try:
+        async with db.begin():
+            user = await db.get(User, user_id)
+            if user is None or user.totp_secret_enc is None:
+                raise AppError(ErrorCode.CONFLICT, "TOTP is not set up")
+            if not verify_totp_code(decrypt_totp_secret(user.totp_secret_enc), body.code):
+                raise _WrongPasswordError(subject)
+            now = datetime.now(UTC)
+            if user.totp_enabled_at is None:
+                user.totp_enabled_at = now
+            await db.execute(update(UserSession).where(UserSession.id == ctx.session_id).values(mfa_verified_at=now))
+    except _WrongPasswordError as wrong:
+        record_failed_login(wrong.subject, ctx.ip_hash)
+        raise AppError(ErrorCode.INVALID_CREDENTIALS) from None
+    reset_failed_login(subject)
+
+
+def _require_staff_session(ctx: RequestContext) -> UUID:
+    if ctx.user_id is None or ctx.session_id is None:
+        raise AppError(ErrorCode.UNAUTHENTICATED)
+    if not ctx.is_staff:
+        raise AppError(ErrorCode.FORBIDDEN)
+    return ctx.user_id
 
 
 def _require_password(body: AcceptInvitationRequest) -> str:

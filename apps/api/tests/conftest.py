@@ -28,6 +28,7 @@ _TEST_ENV = {
     "S3_ACCESS_KEY": "test",
     "S3_SECRET_KEY": "test",
     "IP_HASH_PEPPER": "dGVzdC1wZXBwZXItdGVzdC1wZXBwZXItdGVzdC1wZXA=",
+    "TOTP_ENCRYPTION_KEY": "dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHQ=",
 }
 for _key, _value in _TEST_ENV.items():
     os.environ[_key] = _value
@@ -40,6 +41,7 @@ from seedoc.models.users import User, UserSession  # noqa: E402
 from seedoc.security.rate_limit import reset_rate_limits  # noqa: E402
 from seedoc.security.sessions import SESSION_COOKIE  # noqa: E402
 from seedoc.security.tokens import hash_token, new_token  # noqa: E402
+from seedoc.security.totp import encrypt_totp_secret, new_totp_secret  # noqa: E402
 
 ROLES_SQL = Path(__file__).resolve().parents[3] / "infra" / "postgres" / "init" / "01-roles.sql"
 POSTGRES_IMAGE = "pgvector/pgvector:pg16"
@@ -261,3 +263,62 @@ async def client_as(
 async def client_other_tenant(client_as: ClientAs) -> MemberClient:
     """An editor of a *different* tenant — use it to prove another tenant's ids return 404."""
     return await client_as(MemberRole.EDITOR)
+
+
+@dataclass(frozen=True)
+class StaffClient:
+    """An HTTP client logged in as a staff `user` whose TOTP secret is `totp_secret` (plain, for `pyotp`)."""
+
+    http: AsyncClient
+    user: User
+    totp_secret: str
+    session_token: str
+
+
+class ClientStaff(Protocol):
+    async def __call__(self, mfa_verified: bool = True, totp_enabled: bool = True) -> StaffClient: ...
+
+
+@pytest.fixture
+async def client_staff(admin_db: AsyncSession, make_user: MakeUser) -> AsyncIterator[ClientStaff]:
+    """`await client_staff()` → a staff user with TOTP set up and a session that passed TOTP (staff routes work).
+
+    `mfa_verified=False` gives a session that has not passed TOTP yet (staff routes answer `401 mfa_required`);
+    `totp_enabled=False` gives a staff user who has not enrolled at all.
+    """
+    clients: list[AsyncClient] = []
+    app = create_app()
+    origin = get_settings().app_url
+
+    async def factory(mfa_verified: bool = True, totp_enabled: bool = True) -> StaffClient:
+        user = await make_user(is_staff=True)
+        secret = new_totp_secret()
+        now = datetime.now(UTC)
+        if totp_enabled:
+            user.totp_secret_enc = encrypt_totp_secret(secret)
+            user.totp_enabled_at = now
+        token = new_token()
+        admin_db.add(
+            UserSession(
+                user_id=user.id,
+                token_hash=hash_token(token),
+                expires_at=now + timedelta(days=1),
+                fresh_auth_at=now,
+                mfa_verified_at=now if mfa_verified else None,
+            )
+        )
+        await admin_db.commit()
+
+        http = AsyncClient(
+            transport=ASGITransport(app=app, raise_app_exceptions=False),
+            base_url="http://localhost",
+            headers={"Origin": origin},
+            cookies={SESSION_COOKIE: token},
+        )
+        clients.append(http)
+        return StaffClient(http=http, user=user, totp_secret=secret, session_token=token)
+
+    yield factory
+
+    for http in clients:
+        await http.aclose()
