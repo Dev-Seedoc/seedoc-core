@@ -115,11 +115,12 @@ def test_send_smtp_locally_uses_plain_smtp_without_login(fake_smtp: type[_FakeSm
     assert smtp.sent == [message]
 
 
-def test_send_smtp_on_port_465_uses_tls_and_logs_in(
-    monkeypatch: pytest.MonkeyPatch, fake_smtp: type[_FakeSmtp]
+@pytest.mark.parametrize("port", [465, 2465])
+def test_send_smtp_on_implicit_tls_ports_uses_tls_and_logs_in(
+    monkeypatch: pytest.MonkeyPatch, fake_smtp: type[_FakeSmtp], port: int
 ) -> None:
     monkeypatch.setenv("MAIL_SMTP_HOST", "smtp.resend.com")
-    monkeypatch.setenv("MAIL_SMTP_PORT", "465")
+    monkeypatch.setenv("MAIL_SMTP_PORT", str(port))
     monkeypatch.setenv("MAIL_SMTP_USER", "resend")
     monkeypatch.setenv("MAIL_API_KEY", "re_test_key")
     get_settings.cache_clear()
@@ -128,7 +129,7 @@ def test_send_smtp_on_port_465_uses_tls_and_logs_in(
     _real_send_smtp(message)
 
     [smtp] = fake_smtp.created
-    assert (smtp.host, smtp.port) == ("smtp.resend.com", 465)
+    assert (smtp.host, smtp.port) == ("smtp.resend.com", port)
     assert isinstance(smtp.context, ssl.SSLContext)
     assert smtp.context.verify_mode is ssl.CERT_REQUIRED
     assert smtp.login_args == ("resend", "re_test_key")

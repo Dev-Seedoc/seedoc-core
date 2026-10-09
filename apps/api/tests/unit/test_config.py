@@ -67,6 +67,13 @@ def test_settings_production_requires_ai_and_sentry(monkeypatch: pytest.MonkeyPa
         _settings()
 
 
+def test_settings_production_accepts_resend_alternative_tls_port(monkeypatch: pytest.MonkeyPatch) -> None:
+    _set_complete_production_env(monkeypatch)
+    monkeypatch.setenv("MAIL_SMTP_PORT", "2465")  # Hetzner blocks outgoing 465
+
+    assert _settings().mail_smtp_port == 2465
+
+
 def test_settings_production_requires_implicit_tls_for_mail(monkeypatch: pytest.MonkeyPatch) -> None:
     _set_complete_production_env(monkeypatch)
     monkeypatch.setenv("MAIL_SMTP_PORT", "1025")

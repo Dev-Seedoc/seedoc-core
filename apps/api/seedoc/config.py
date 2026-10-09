@@ -27,7 +27,9 @@ _SECRET_FIELDS = ("pin_encryption_key", "totp_encryption_key", "ip_hash_pepper")
 _REQUIRED_OUTSIDE_LOCAL = ("mail_api_key",)
 # Staging runs without them until they exist (AI from M4, Sentry later); production never does.
 _REQUIRED_IN_PRODUCTION = ("ai_api_key", "sentry_dsn")
-SMTP_TLS_PORT = 465  # implicit TLS; the only port allowed outside local
+# Implicit-TLS SMTP ports (the only ones allowed outside local). Resend serves 465 and 2465; Hetzner blocks outgoing
+# 25 and 465 on new servers, so staging uses 2465.
+SMTP_TLS_PORTS = (465, 2465)
 
 
 class Settings(BaseSettings):
@@ -57,7 +59,7 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-small"
     chat_model: str = "gpt-4.1-mini"
 
-    # SMTP (ARCHITECTURE D20): Mailpit locally, Resend (`smtp.resend.com:465`, user `resend`) elsewhere.
+    # SMTP (ARCHITECTURE D20): Mailpit locally, Resend (`smtp.resend.com:2465`, user `resend`) elsewhere.
     mail_smtp_host: str = "localhost"
     mail_smtp_port: int = 1025
     mail_smtp_user: str = ""
@@ -94,8 +96,9 @@ class Settings(BaseSettings):
             missing = [name.upper() for name in required if not getattr(self, name)]
             if missing:
                 raise ValueError(f"required in {self.environment.value}: {', '.join(missing)}")
-            if self.mail_smtp_port != SMTP_TLS_PORT:
-                raise ValueError(f"MAIL_SMTP_PORT must be {SMTP_TLS_PORT} (implicit TLS) outside local")
+            if self.mail_smtp_port not in SMTP_TLS_PORTS:
+                ports = " or ".join(str(port) for port in SMTP_TLS_PORTS)
+                raise ValueError(f"MAIL_SMTP_PORT must be {ports} (implicit TLS) outside local")
         return self
 
 

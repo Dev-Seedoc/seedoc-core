@@ -21,7 +21,7 @@ from pathlib import Path
 
 import structlog
 
-from seedoc.config import SMTP_TLS_PORT, get_settings
+from seedoc.config import SMTP_TLS_PORTS, get_settings
 
 SMTP_TIMEOUT_SECONDS = 30
 
@@ -104,7 +104,7 @@ async def _deliver(template: MailTemplate, message: EmailMessage) -> None:
 def _send_smtp(message: EmailMessage) -> None:
     settings = get_settings()
     host, port = settings.mail_smtp_host, settings.mail_smtp_port
-    if port == SMTP_TLS_PORT:
+    if port in SMTP_TLS_PORTS:
         smtp: smtplib.SMTP = smtplib.SMTP_SSL(
             host, port, timeout=SMTP_TIMEOUT_SECONDS, context=ssl.create_default_context()
         )
