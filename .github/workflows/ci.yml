@@ -84,9 +84,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: SSH key
+        env:
+          STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+          STAGING_SSH_KNOWN_HOSTS: ${{ secrets.STAGING_SSH_KNOWN_HOSTS }}
         run: |
           install -d -m 700 ~/.ssh
-          printf '%s\n' "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/id_ed25519
-          printf '%s\n' "${{ secrets.STAGING_SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          # Secrets pasted in a browser often carry Windows line breaks, which OpenSSH rejects as "invalid format".
+          printf '%s\n' "$STAGING_SSH_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
+          printf '%s\n' "$STAGING_SSH_KNOWN_HOSTS" | tr -d '\r' > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+          # Fail early with a clear message; the fingerprint is public and must match the key on the server
+          # (`ssh deploy@<server> "grep github-actions-staging ~/.ssh/authorized_keys | ssh-keygen -lf -"`).
+          ssh-keygen -lf ~/.ssh/id_ed25519 || { echo "::error::STAGING_SSH_KEY is not a readable private key"; exit 1; }
       - run: bash scripts/deploy-staging.sh
