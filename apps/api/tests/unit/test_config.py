@@ -46,6 +46,27 @@ def test_settings_production_accepts_complete_config(monkeypatch: pytest.MonkeyP
     assert _settings().is_production
 
 
+def test_settings_staging_runs_without_ai_and_sentry_but_not_without_mail(monkeypatch: pytest.MonkeyPatch) -> None:
+    _set_complete_production_env(monkeypatch)
+    monkeypatch.setenv("ENVIRONMENT", "staging")
+    monkeypatch.setenv("AI_API_KEY", "")
+    monkeypatch.setenv("SENTRY_DSN", "")
+
+    assert _settings().environment == "staging"
+
+    monkeypatch.setenv("MAIL_API_KEY", "")
+    with pytest.raises(ValidationError, match="required in staging: MAIL_API_KEY"):
+        _settings()
+
+
+def test_settings_production_requires_ai_and_sentry(monkeypatch: pytest.MonkeyPatch) -> None:
+    _set_complete_production_env(monkeypatch)
+    monkeypatch.setenv("SENTRY_DSN", "")
+
+    with pytest.raises(ValidationError, match="required in production: SENTRY_DSN"):
+        _settings()
+
+
 def test_settings_production_requires_implicit_tls_for_mail(monkeypatch: pytest.MonkeyPatch) -> None:
     _set_complete_production_env(monkeypatch)
     monkeypatch.setenv("MAIL_SMTP_PORT", "1025")

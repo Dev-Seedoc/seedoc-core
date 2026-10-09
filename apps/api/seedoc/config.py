@@ -24,7 +24,9 @@ class AiProvider(StrEnum):
 
 SECRET_KEY_BYTES = 32
 _SECRET_FIELDS = ("pin_encryption_key", "totp_encryption_key", "ip_hash_pepper")
-_REQUIRED_OUTSIDE_LOCAL = ("ai_api_key", "mail_api_key", "sentry_dsn")
+_REQUIRED_OUTSIDE_LOCAL = ("mail_api_key",)
+# Staging runs without them until they exist (AI from M4, Sentry later); production never does.
+_REQUIRED_IN_PRODUCTION = ("ai_api_key", "sentry_dsn")
 SMTP_TLS_PORT = 465  # implicit TLS; the only port allowed outside local
 
 
@@ -88,9 +90,10 @@ class Settings(BaseSettings):
             if len(decoded) != SECRET_KEY_BYTES:
                 raise ValueError(f"{name.upper()} must decode to {SECRET_KEY_BYTES} bytes")
         if not is_local:
-            missing = [name.upper() for name in _REQUIRED_OUTSIDE_LOCAL if not getattr(self, name)]
+            required = _REQUIRED_OUTSIDE_LOCAL + (_REQUIRED_IN_PRODUCTION if self.is_production else ())
+            missing = [name.upper() for name in required if not getattr(self, name)]
             if missing:
-                raise ValueError(f"required outside local: {', '.join(missing)}")
+                raise ValueError(f"required in {self.environment.value}: {', '.join(missing)}")
             if self.mail_smtp_port != SMTP_TLS_PORT:
                 raise ValueError(f"MAIL_SMTP_PORT must be {SMTP_TLS_PORT} (implicit TLS) outside local")
         return self
