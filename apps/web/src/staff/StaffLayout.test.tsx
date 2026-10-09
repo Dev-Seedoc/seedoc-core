@@ -4,8 +4,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MeRead } from "@/lib/api/types";
 import { apiError, renderRoute, stubApi, TEST_ME } from "@/test/renderRoute";
 
-const STAFF: MeRead = { ...TEST_ME, is_staff: true, mfa_verified: true };
-const STAFF_NEEDS_TOTP: MeRead = { ...STAFF, mfa_verified: false };
+const STAFF: MeRead = { ...TEST_ME, is_staff: true, has_totp: true, mfa_verified: true };
+// New session of staff who already set up TOTP: enters a code.
+const STAFF_NEEDS_CODE: MeRead = { ...STAFF, mfa_verified: false };
+// Staff who never finished TOTP setup.
+const STAFF_WITHOUT_TOTP: MeRead = { ...STAFF, has_totp: false, mfa_verified: false };
 const VERIFY = "POST /api/v1/auth/totp/verify";
 const SETUP = "POST /api/v1/auth/totp/setup";
 
@@ -43,10 +46,21 @@ describe("StaffLayout", () => {
     expect(screen.getByRole("link", { name: "Zur Anwendung" })).toHaveAttribute("href", "/");
   });
 
-  it("asks staff for a TOTP code before showing anything", () => {
-    renderRoute("/staff", STAFF_NEEDS_TOTP);
+  it("asks staff with TOTP for the code field before showing anything", () => {
+    renderRoute("/staff", STAFF_NEEDS_CODE);
 
     expect(screen.getByRole("heading", { name: "Bestätigungscode eingeben" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Bestätigungscode")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Einrichtung starten" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Navigation SeeDoc-Team" })).not.toBeInTheDocument();
+  });
+
+  it("starts staff without TOTP with the setup step", () => {
+    renderRoute("/staff", STAFF_WITHOUT_TOTP);
+
+    expect(screen.getByRole("heading", { name: "Zwei-Faktor-Authentifizierung einrichten" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Einrichtung starten" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Bestätigungscode")).not.toBeInTheDocument();
     expect(screen.queryByRole("navigation", { name: "Navigation SeeDoc-Team" })).not.toBeInTheDocument();
   });
 });
@@ -54,7 +68,7 @@ describe("StaffLayout", () => {
 describe("TotpScreen", () => {
   it("rejects a code that is not 6 digits and sends nothing", async () => {
     const fetchMock = stubApi({});
-    renderRoute("/staff", STAFF_NEEDS_TOTP);
+    renderRoute("/staff", STAFF_NEEDS_CODE);
 
     enterCode("12345");
 
@@ -64,7 +78,7 @@ describe("TotpScreen", () => {
 
   it("says the code is wrong instead of mentioning e-mail and password", async () => {
     stubApi({ [VERIFY]: apiError(401, "invalid_credentials") });
-    renderRoute("/staff", STAFF_NEEDS_TOTP);
+    renderRoute("/staff", STAFF_NEEDS_CODE);
 
     enterCode("123456");
 
@@ -73,7 +87,7 @@ describe("TotpScreen", () => {
 
   it("opens the console after a correct code", async () => {
     const fetchMock = stubApi({ [VERIFY]: { status: 204 }, "GET /api/v1/auth/me": { status: 200, body: STAFF } });
-    renderRoute("/staff", STAFF_NEEDS_TOTP);
+    renderRoute("/staff", STAFF_NEEDS_CODE);
 
     enterCode("123 456");
 
@@ -89,10 +103,8 @@ describe("TotpScreen", () => {
         body: { otpauth_uri: "otpauth://totp/SeeDoc:staff@example.com?secret=JBSWY3DPEHPK3PXP&issuer=SeeDoc" },
       },
     });
-    renderRoute("/staff", STAFF_NEEDS_TOTP);
+    renderRoute("/staff", STAFF_WITHOUT_TOTP);
 
-    fireEvent.click(screen.getByRole("button", { name: "Jetzt einrichten" }));
-    expect(screen.getByRole("heading", { name: "Zwei-Faktor-Authentifizierung einrichten" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Einrichtung starten" }));
 
     expect(await screen.findByText("JBSW Y3DP EHPK 3PXP")).toBeInTheDocument();
@@ -103,20 +115,21 @@ describe("TotpScreen", () => {
     expect(screen.getByLabelText("Bestätigungscode")).toBeInTheDocument();
   });
 
+  // Safety net if has_totp is out of date, e.g. setup was finished in another tab.
   it("goes back to code entry when TOTP is already set up", async () => {
     stubApi({ [SETUP]: apiError(409, "conflict") });
-    renderRoute("/staff", STAFF_NEEDS_TOTP);
+    renderRoute("/staff", STAFF_WITHOUT_TOTP);
 
-    fireEvent.click(screen.getByRole("button", { name: "Jetzt einrichten" }));
     fireEvent.click(screen.getByRole("button", { name: "Einrichtung starten" }));
 
     expect(await screen.findByText(/bereits eingerichtet/)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Bestätigungscode eingeben" })).toBeInTheDocument();
   });
 
+  // Safety net the other way round: the API says this account has no TOTP.
   it("switches to setup when the account has no TOTP yet", async () => {
     stubApi({ [VERIFY]: apiError(409, "conflict") });
-    renderRoute("/staff", STAFF_NEEDS_TOTP);
+    renderRoute("/staff", STAFF_NEEDS_CODE);
 
     enterCode("123456");
 

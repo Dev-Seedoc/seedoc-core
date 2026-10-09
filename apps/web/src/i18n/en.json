@@ -203,8 +203,6 @@
       "verifyDescription": "Enter the 6-digit code from your authenticator app.",
       "code": "Verification code",
       "submit": "Confirm",
-      "notSetUp": "No authenticator app set up yet?",
-      "setUpNow": "Set up now",
       "alreadySetUp": "Two-factor authentication is already set up. Please enter your code.",
       "codeInvalid": "Please enter the 6-digit code.",
       "codeWrong": "The code is wrong or has expired."
