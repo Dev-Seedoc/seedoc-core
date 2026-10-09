@@ -10,6 +10,7 @@ from seedoc.audit import write_audit_event
 from seedoc.db.engine import set_tenant
 from seedoc.deps import RequestContext
 from seedoc.errors import AppError, ErrorCode
+from seedoc.mail.send import MailTemplate, get_app_link, send_email
 from seedoc.models.operators import OperatorMember, OperatorOrg, OperatorRole
 from seedoc.models.tenants import Invitation, InvitationKind, MemberRole, Tenant, TenantMember
 from seedoc.models.users import PasswordResetToken, User, UserSession
@@ -123,18 +124,21 @@ async def reauthenticate(db: AsyncSession, ctx: RequestContext, body: Reauthenti
 
 
 async def request_password_reset(db: AsyncSession, ctx: RequestContext, body: PasswordResetRequest) -> None:
-    """Always succeeds (202), whether or not the e-mail has an account — no user enumeration."""
+    """Always succeeds (202), whether or not the e-mail has an account — no user enumeration.
+
+    The mail goes out in the background (`send_email`), so the response time does not reveal a known address.
+    """
     async with db.begin():
-        user_id = await db.scalar(select(User.id).where(User.email == _normalize_email(body.email)))
-        if user_id is None:
+        user = (await db.execute(select(User.id, User.email).where(User.email == _normalize_email(body.email)))).first()
+        if user is None:
             return
         token = new_token()
         db.add(
             PasswordResetToken(
-                user_id=user_id, token_hash=hash_token(token), expires_at=datetime.now(UTC) + PASSWORD_RESET_TTL
+                user_id=user.id, token_hash=hash_token(token), expires_at=datetime.now(UTC) + PASSWORD_RESET_TTL
             )
         )
-        # TODO(M0-A7): send the `password_reset` mail with `token` (link /reset-password/{token}).
+    send_email(MailTemplate.PASSWORD_RESET, user.email, {"reset_url": get_app_link(f"/reset-password/{token}")})
 
 
 async def confirm_password_reset(db: AsyncSession, ctx: RequestContext, body: PasswordResetConfirmRequest) -> None:

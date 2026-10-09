@@ -141,7 +141,7 @@ Suggested prompt:
 | Auth | Own session auth: Argon2id, opaque session token in an HttpOnly cookie, TOTP for staff |
 | PDF text | `pypdfium2` (not PyMuPDF, which is AGPL) |
 | AI | Embeddings `text-embedding-3-small` (1536 dims); chat `gpt-4.1-mini` via an EU-processing provider |
-| Mail | Postmark (EU alternative: Brevo); Mailpit locally |
+| Mail | Resend (EU region, sender domain `mail.seedoc.cloud`) over SMTP; Mailpit locally |
 | Hosting | Hetzner Cloud (DE), Docker Compose, Caddy (TLS incl. on-demand TLS for manufacturer domains) |
 | Observability | Sentry, structured JSON logs (`structlog`) |
 | Tooling | pnpm, uv, Ruff, pyright strict, ESLint + Prettier, Vitest, Playwright, pytest + httpx + testcontainers |

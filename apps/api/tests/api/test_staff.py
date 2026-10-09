@@ -1,6 +1,7 @@
 """API tests for /api/v1/staff (M0-A8, API.md §6)."""
 
 from datetime import UTC, datetime, timedelta
+from email.message import EmailMessage
 from typing import Any
 from uuid import uuid4
 
@@ -12,10 +13,11 @@ from starlette.requests import Request
 
 from seedoc.deps import get_ctx, require_role
 from seedoc.errors import AppError, ErrorCode
+from seedoc.mail.send import send_pending_mail
 from seedoc.models.audit import AuditEvent
 from seedoc.models.tenants import Invitation, MemberRole, TenantStatus
 from seedoc.security.sessions import SESSION_COOKIE
-from tests.conftest import ClientAs, ClientStaff, MakeMember, MakeTenant, MakeUser, MemberClient
+from tests.conftest import ClientAs, ClientStaff, MakeMember, MakeTenant, MakeUser, MemberClient, get_mail_link
 
 pytestmark = pytest.mark.usefixtures("postgres")
 
@@ -104,6 +106,47 @@ async def test_create_tenant_with_owner_invitation(admin_db: AsyncSession, clien
     assert timedelta(days=6) < invitation.expires_at - datetime.now(UTC) <= timedelta(days=7)
     actions = set(await admin_db.scalars(select(AuditEvent.action).where(AuditEvent.tenant_id == invitation.tenant_id)))
     assert actions == {"tenant.created", "member.invited"}
+
+
+async def test_create_tenant_mails_the_owner_a_working_invitation(
+    client_staff: ClientStaff, outbox: list[EmailMessage]
+) -> None:
+    staff = await client_staff()
+    owner_email = f"owner-{uuid4().hex[:8]}@example.com"
+
+    response = await staff.http.post(
+        "/api/v1/staff/tenants", json={"name": "Kraft & <Söhne> GmbH", "slug": _slug(), "owner_email": owner_email}
+    )
+    await send_pending_mail()
+
+    assert response.status_code == 201
+    assert len(outbox) == 1
+    mail = outbox[0]
+    assert mail["To"] == owner_email
+    assert mail["Subject"] == "Einladung zu Kraft & <Söhne> GmbH auf SeeDoc"
+    html_part = mail.get_body(preferencelist=("html",))
+    assert html_part is not None
+    html_body: str = html_part.get_content()
+    assert "Kraft &amp; &lt;Söhne&gt; GmbH" in html_body
+    assert "<Söhne>" not in html_body
+    token = get_mail_link(mail, "/invite/")
+    preview = await staff.http.get(f"/api/v1/auth/invitations/{token}")
+    assert preview.status_code == 200
+    assert preview.json()["tenant_name"] == "Kraft & <Söhne> GmbH"
+
+
+async def test_create_tenant_duplicate_slug_sends_no_mail(
+    client_staff: ClientStaff, make_tenant: MakeTenant, outbox: list[EmailMessage]
+) -> None:
+    staff = await client_staff()
+    existing = await make_tenant()
+
+    await staff.http.post(
+        "/api/v1/staff/tenants", json={"name": "Dup", "slug": existing.slug, "owner_email": "a@example.com"}
+    )
+    await send_pending_mail()
+
+    assert outbox == []
 
 
 async def test_create_tenant_duplicate_slug_is_conflict(client_staff: ClientStaff, make_tenant: MakeTenant) -> None:

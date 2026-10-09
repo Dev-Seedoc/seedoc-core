@@ -15,6 +15,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from seedoc.config import get_settings
 from seedoc.db.engine import dispose_engines
 from seedoc.errors import AppError, ErrorCode
+from seedoc.mail.send import send_pending_mail
 from seedoc.routers import auth, health, staff
 from seedoc.security.csrf import csrf_middleware
 
@@ -81,6 +82,7 @@ async def _handle_unexpected_error(request: Request, exc: Exception) -> JSONResp
 @asynccontextmanager
 async def _lifespan(_: FastAPI) -> AsyncGenerator[None]:
     yield
+    await send_pending_mail()
     await dispose_engines()
 
 

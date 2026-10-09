@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from seedoc.audit import write_audit_event
 from seedoc.deps import RequestContext
 from seedoc.errors import AppError, ErrorCode
+from seedoc.mail.send import MailTemplate, get_app_link, send_email
 from seedoc.models.tenants import Invitation, InvitationKind, MemberRole, Tenant, TenantMember
 from seedoc.models.users import User
 from seedoc.schemas.common import Page
@@ -59,7 +60,7 @@ async def staff_list_tenants(
 
 
 async def staff_create_tenant(db: AsyncSession, ctx: RequestContext, body: StaffTenantCreate) -> StaffTenantRead:
-    """Create the tenant and an owner invitation (7 days)."""
+    """Create the tenant and an owner invitation (7 days); the invitation mail is sent after the commit."""
     owner_email = body.owner_email.strip().lower()
     try:
         async with db.begin():
@@ -81,7 +82,6 @@ async def staff_create_tenant(db: AsyncSession, ctx: RequestContext, body: Staff
             )
             db.add(invitation)
             await db.flush()
-            # TODO(M0-A7): send the `invitation_tenant_member` mail with `token` (link /invite/{token}).
 
             await write_audit_event(
                 db, ctx, "tenant.created", "tenant", tenant.id, {"slug": tenant.slug}, tenant_id=tenant.id
@@ -89,9 +89,16 @@ async def staff_create_tenant(db: AsyncSession, ctx: RequestContext, body: Staff
             await write_audit_event(
                 db, ctx, "member.invited", "invitation", invitation.id, {"role": "owner"}, tenant_id=tenant.id
             )
-            return await _read_tenant(db, tenant.id)
+            created = await _read_tenant(db, tenant.id)
     except IntegrityError as exc:  # two staff members creating the same slug at the same moment
         raise AppError(ErrorCode.CONFLICT, "slug already in use", details={"field": "slug"}) from exc
+
+    send_email(
+        MailTemplate.INVITATION_TENANT_MEMBER,
+        owner_email,
+        {"tenant_name": created.name, "invitation_url": get_app_link(f"/invite/{token}")},
+    )
+    return created
 
 
 async def staff_get_tenant(db: AsyncSession, ctx: RequestContext, tenant_id: UUID) -> StaffTenantRead:

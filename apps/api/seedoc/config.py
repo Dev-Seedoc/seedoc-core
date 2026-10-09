@@ -25,6 +25,7 @@ class AiProvider(StrEnum):
 SECRET_KEY_BYTES = 32
 _SECRET_FIELDS = ("pin_encryption_key", "totp_encryption_key", "ip_hash_pepper")
 _REQUIRED_OUTSIDE_LOCAL = ("ai_api_key", "mail_api_key", "sentry_dsn")
+SMTP_TLS_PORT = 465  # implicit TLS; the only port allowed outside local
 
 
 class Settings(BaseSettings):
@@ -54,8 +55,12 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-small"
     chat_model: str = "gpt-4.1-mini"
 
-    mail_api_key: str = ""
-    mail_from: str = "SeeDoc <noreply@seedoc.cloud>"
+    # SMTP (ARCHITECTURE D20): Mailpit locally, Resend (`smtp.resend.com:465`, user `resend`) elsewhere.
+    mail_smtp_host: str = "localhost"
+    mail_smtp_port: int = 1025
+    mail_smtp_user: str = ""
+    mail_api_key: str = ""  # SMTP password (the Resend API key); empty for Mailpit
+    mail_from: str = "SeeDoc <noreply@mail.seedoc.cloud>"
 
     sentry_dsn: str = ""
 
@@ -86,6 +91,8 @@ class Settings(BaseSettings):
             missing = [name.upper() for name in _REQUIRED_OUTSIDE_LOCAL if not getattr(self, name)]
             if missing:
                 raise ValueError(f"required outside local: {', '.join(missing)}")
+            if self.mail_smtp_port != SMTP_TLS_PORT:
+                raise ValueError(f"MAIL_SMTP_PORT must be {SMTP_TLS_PORT} (implicit TLS) outside local")
         return self
 
 

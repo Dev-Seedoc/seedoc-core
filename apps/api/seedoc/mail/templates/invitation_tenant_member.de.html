@@ -3,7 +3,8 @@
   Mail template `invitation_tenant_member` (NAMING §12), sent by `send_email`.
   Placeholders: {{ tenant_name }}, {{ invitation_url }} (= APP_URL + /invite/{token}).
   The invitation is valid for 7 days and can be used once (BUSINESS_RULES §2).
-  TODO(decision): placeholder syntax, names and where the subject lives — confirm with Raven (M0-A7).
+  Format (mail/send.py): values are HTML-escaped here; the subject is the first line of the .txt file;
+  this comment is removed before sending.
 -->
 <html lang="de">
   <head>

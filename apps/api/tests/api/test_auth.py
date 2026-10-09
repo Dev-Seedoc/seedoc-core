@@ -1,6 +1,7 @@
 """API tests for /api/v1/auth (M0-A6, API.md §2, BUSINESS_RULES §2)."""
 
 from datetime import UTC, datetime, timedelta
+from email.message import EmailMessage
 from uuid import uuid4
 
 import pytest
@@ -11,6 +12,7 @@ from starlette.requests import Request
 
 from seedoc.config import get_settings
 from seedoc.deps import get_ctx
+from seedoc.mail.send import send_pending_mail
 from seedoc.models.audit import AuditEvent
 from seedoc.models.operators import OperatorMember, OperatorOrg, OperatorRole
 from seedoc.models.tenants import Invitation, InvitationKind, MemberRole, Tenant, TenantMember
@@ -18,7 +20,7 @@ from seedoc.models.users import PasswordResetToken, User, UserSession
 from seedoc.security.passwords import hash_password
 from seedoc.security.sessions import SESSION_COOKIE
 from seedoc.security.tokens import hash_token, new_token
-from tests.conftest import ClientAs, MakeMember, MakeTenant, MakeUser
+from tests.conftest import ClientAs, MakeMember, MakeTenant, MakeUser, get_mail_link
 
 pytestmark = pytest.mark.usefixtures("postgres")
 
@@ -315,6 +317,25 @@ async def test_request_password_reset_always_202_and_creates_token_only_for_know
         select(func.count()).select_from(PasswordResetToken).where(PasswordResetToken.user_id == user.id)
     )
     assert count == 1
+
+
+async def test_request_password_reset_mails_a_working_link_only_to_known_email(
+    admin_db: AsyncSession, make_user: MakeUser, client: AsyncClient, outbox: list[EmailMessage]
+) -> None:
+    user = await _user_with_password(admin_db, make_user)
+
+    await client.post("/api/v1/auth/password-reset", json={"email": "nobody@example.com"})
+    await client.post("/api/v1/auth/password-reset", json={"email": f" {user.email.upper()} "})
+    await send_pending_mail()
+
+    assert len(outbox) == 1
+    assert outbox[0]["To"] == user.email
+    assert outbox[0]["Subject"] == "Passwort für SeeDoc zurücksetzen"
+    token = get_mail_link(outbox[0], "/reset-password/")
+    confirm = await client.post(
+        "/api/v1/auth/password-reset/confirm", json={"token": token, "password": OTHER_PASSWORD}
+    )
+    assert confirm.status_code == 204
 
 
 async def test_password_reset_changes_password_revokes_sessions_and_is_single_use(

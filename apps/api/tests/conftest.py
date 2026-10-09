@@ -1,9 +1,11 @@
 """Shared fixtures. Tests that touch the database run against a real Postgres (testcontainers), never SQLite."""
 
 import os
+import re
 from collections.abc import AsyncIterator, Iterator
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from email.message import EmailMessage
 from pathlib import Path
 from typing import Protocol
 from uuid import uuid4
@@ -35,6 +37,7 @@ for _key, _value in _TEST_ENV.items():
 
 from seedoc.config import get_settings  # noqa: E402
 from seedoc.db import engine as db_engine  # noqa: E402
+from seedoc.mail import send as mail_send  # noqa: E402
 from seedoc.main import create_app  # noqa: E402
 from seedoc.models.tenants import MemberRole, Tenant, TenantMember, TenantStatus  # noqa: E402
 from seedoc.models.users import User, UserSession  # noqa: E402
@@ -106,6 +109,24 @@ def reset_login_throttle() -> Iterator[None]:
     reset_rate_limits()
     yield
     reset_rate_limits()
+
+
+@pytest.fixture(autouse=True)
+def outbox(monkeypatch: pytest.MonkeyPatch) -> list[EmailMessage]:
+    """Mails "sent" in this test, instead of SMTP. Call `await send_pending_mail()` before reading it."""
+    sent: list[EmailMessage] = []
+    monkeypatch.setattr(mail_send, "_send_smtp", sent.append)
+    return sent
+
+
+def get_mail_link(message: EmailMessage, path: str) -> str:
+    """The token of the first `APP_URL{path}<token>` link in the plain-text body, e.g. `path="/invite/"`."""
+    body = message.get_body(preferencelist=("plain",))
+    assert body is not None
+    text: str = body.get_content()
+    match = re.search(re.escape(get_settings().app_url + path) + r"(\S+)", text)
+    assert match is not None, f"no {path} link in the mail"
+    return match.group(1)
 
 
 @pytest.fixture

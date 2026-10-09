@@ -31,11 +31,24 @@ def test_settings_rejects_short_key() -> None:
         _settings(PIN_ENCRYPTION_KEY=base64.b64encode(b"short").decode())
 
 
-def test_settings_production_accepts_complete_config(monkeypatch: pytest.MonkeyPatch) -> None:
+def _set_complete_production_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ENVIRONMENT", "production")
     for name in ("PIN_ENCRYPTION_KEY", "TOTP_ENCRYPTION_KEY", "IP_HASH_PEPPER"):
         monkeypatch.setenv(name, _KEY)
     for name in ("AI_API_KEY", "MAIL_API_KEY", "SENTRY_DSN"):
         monkeypatch.setenv(name, "set")
+    monkeypatch.setenv("MAIL_SMTP_PORT", "465")
+
+
+def test_settings_production_accepts_complete_config(monkeypatch: pytest.MonkeyPatch) -> None:
+    _set_complete_production_env(monkeypatch)
 
     assert _settings().is_production
+
+
+def test_settings_production_requires_implicit_tls_for_mail(monkeypatch: pytest.MonkeyPatch) -> None:
+    _set_complete_production_env(monkeypatch)
+    monkeypatch.setenv("MAIL_SMTP_PORT", "1025")
+
+    with pytest.raises(ValidationError, match="MAIL_SMTP_PORT must be 465"):
+        _settings()
