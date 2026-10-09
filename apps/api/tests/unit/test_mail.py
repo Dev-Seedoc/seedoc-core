@@ -1,5 +1,6 @@
 """Unit tests for mail rendering and SMTP delivery (M0-A7, ARCHITECTURE D20)."""
 
+import asyncio
 import ssl
 from collections.abc import Iterator
 from email.message import EmailMessage
@@ -134,6 +135,26 @@ def test_send_smtp_on_implicit_tls_ports_uses_tls_and_logs_in(
     assert smtp.context.verify_mode is ssl.CERT_REQUIRED
     assert smtp.login_args == ("resend", "re_test_key")
     assert smtp.sent == [message]
+
+
+def _finished_task_of_a_closed_loop() -> asyncio.Task[None]:
+    other_loop = asyncio.new_event_loop()
+    try:
+        task = other_loop.create_task(asyncio.sleep(0))
+        other_loop.run_until_complete(task)
+    finally:
+        other_loop.close()
+    return task
+
+
+async def test_send_pending_mail_ignores_finished_tasks_of_other_loops() -> None:
+    stale = await asyncio.to_thread(_finished_task_of_a_closed_loop)  # a second loop cannot run on this thread
+    pending = mail_send._pending  # pyright: ignore[reportPrivateUsage]
+    pending.add(stale)  # as if its `discard` callback never ran: the case that once made this wait spin forever
+
+    await asyncio.wait_for(send_pending_mail(), timeout=2)
+
+    assert stale not in pending
 
 
 async def test_send_email_failure_is_logged_without_the_address(monkeypatch: pytest.MonkeyPatch) -> None:

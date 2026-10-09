@@ -71,9 +71,19 @@ def send_email(template: MailTemplate, to: str, context: dict[str, str]) -> None
 
 
 async def send_pending_mail() -> None:
-    """Wait until every queued mail is sent (or has failed). Used on shutdown and in tests."""
-    while _pending:
-        await asyncio.gather(*_pending)
+    """Wait until every mail queued on this event loop is sent (or has failed). Used on shutdown and in tests.
+
+    Finished tasks are dropped here rather than trusted to `_pending.discard`: that callback runs on the task's own
+    loop, and a task from a loop that has stopped (one test's loop, seen from the next) would otherwise stay in
+    `_pending` forever and make this loop spin.
+    """
+    loop = asyncio.get_running_loop()
+    while True:
+        _pending.difference_update({task for task in _pending if task.done() or task.get_loop().is_closed()})
+        waiting = [task for task in _pending if task.get_loop() is loop]
+        if not waiting:
+            return
+        await asyncio.gather(*waiting)
 
 
 @lru_cache
