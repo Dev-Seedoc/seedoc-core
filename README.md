@@ -564,7 +564,9 @@ Running it again changes nothing; `make seed ARGS=--reset-passwords` prints new 
 
 For the Playwright tests: fill `apps/web/e2e/.env` (copy `.env.example`; choose your own staff e-mail, a password of
 12+ characters and a base32 TOTP secret), then run `make seed ARGS=--e2e-staff` once. It creates or updates that staff
-user with exactly those values and prints nothing secret.
+user with exactly those values and prints nothing secret. If it stops with "TOTP_ENCRYPTION_KEY is empty", the three
+secrets in the root `.env` are still the empty lines of the template (§13). `make e2e` needs `make up`, `make migrate`
+and `make dev` running; if port 8000 or 5173 is taken, an old `make dev` is usually still running — stop it first.
 
 **7. Start the API and the web app**
 
@@ -678,10 +680,15 @@ to reset the database.
 | Isolation | `apps/api/tests/isolation/` | tenant A cannot touch tenant B rows as `seedoc_app` |
 | Immutability | `apps/api/tests/immutability/` | UPDATE/DELETE on release tables raises |
 | Portal | `apps/api/tests/portal/` | internal never visible; customer only with PIN/grant; old release hidden |
-| E2E | `apps/web/e2e/` (Playwright, nightly) | upload → release → delivery → publish → portal → ask |
+| E2E | `apps/web/e2e/` (Playwright, every CI run; `make e2e` locally) | now: staff creates tenant → owner accepts invite → logs in; later: upload → release → delivery → publish → portal → ask |
 | AI eval | `apps/api/eval/` | 30 German questions: correct page in top 6 ≥ 80 %, refusal without source |
 
 Tests run against real Postgres (testcontainers), never SQLite.
+
+The CI job `e2e` starts Postgres + Mailpit, writes a `.env` and `apps/web/e2e/.env` with random keys and a random
+staff login, runs `make migrate` and `make seed ARGS=--e2e-staff`, starts the API (:8000) and Vite (:5173) and runs
+`make e2e`. The staging deploy waits for it. On failure the run keeps the Playwright trace and screenshots as the
+artifact `playwright` (7 days).
 
 ## 16. Deployment
 
