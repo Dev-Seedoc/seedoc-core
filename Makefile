@@ -1,7 +1,7 @@
 COMPOSE := docker compose -f infra/docker-compose.yml
 API := cd apps/api &&
 
-.PHONY: help install up down dev dev-api dev-web migrate seed test test-api test-web lint typecheck gen-api check-branch
+.PHONY: help install up down dev dev-api dev-web migrate seed test test-api test-web e2e lint typecheck gen-api check-branch
 
 help:
 	@echo "install    install backend (uv) and frontend (pnpm) dependencies"
@@ -11,6 +11,7 @@ help:
 	@echo "seed       demo tenant + owner/admin/editor + staff user (ARGS=--reset-passwords for new passwords,"
 	@echo "           ARGS=--e2e-staff for the Playwright staff user from apps/web/e2e/.env)"
 	@echo "test       backend + frontend tests"
+	@echo "e2e        Playwright smoke test against the running local stack (up + migrate + dev; ARGS=--headed to watch)"
 	@echo "lint       ruff + eslint;  typecheck: pyright + tsc"
 	@echo "check-branch BRANCH=DevArea-Jamshid   run all checks on a pushed branch before merging it into main"
 
@@ -46,6 +47,9 @@ test-api:
 
 test-web:
 	pnpm --dir apps/web test
+
+e2e:
+	pnpm --dir apps/web e2e $(ARGS)
 
 lint:
 	$(API) uv run ruff check . && uv run ruff format --check .

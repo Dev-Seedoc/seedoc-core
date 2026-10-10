@@ -5,7 +5,7 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "coverage", "src/lib/api/schema.d.ts"] },
+  { ignores: ["dist", "coverage", "test-results", "playwright-report", "src/lib/api/schema.d.ts"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.strictTypeChecked],
     files: ["**/*.{ts,tsx}"],
@@ -27,5 +27,11 @@ export default tseslint.config(
     // shadcn/ui files are generated and export helpers next to components.
     files: ["src/components/ui/**"],
     rules: { "react-refresh/only-export-components": "off" },
+  },
+  {
+    // Playwright runs in Node, not in the browser; its fixtures call `use()`, which is not React's hook.
+    files: ["e2e/**", "playwright.config.ts"],
+    languageOptions: { globals: globals.node },
+    rules: { "react-hooks/rules-of-hooks": "off", "react-refresh/only-export-components": "off" },
   },
 );

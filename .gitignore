@@ -25,7 +25,8 @@ coverage/
 *.tsbuildinfo
 .vite/
 
-# Playwright
+# Playwright (apps/web/e2e/.env stays ignored via .env; its template is committed)
+!apps/web/e2e/.env.example
 apps/web/test-results/
 apps/web/playwright-report/
 
