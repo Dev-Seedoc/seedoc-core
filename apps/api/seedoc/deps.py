@@ -145,6 +145,12 @@ def require_role(min_role: MemberRole) -> Callable[[RequestContext], Awaitable[R
     return dependency
 
 
+# Role column of API.md §3: `editor` = any member, `admin` = admin or owner, `owner` = owner only.
+EditorCtx = Annotated[RequestContext, Depends(require_role(MemberRole.EDITOR))]
+AdminCtx = Annotated[RequestContext, Depends(require_role(MemberRole.ADMIN))]
+OwnerCtx = Annotated[RequestContext, Depends(require_role(MemberRole.OWNER))]
+
+
 async def require_fresh_auth(ctx: Ctx) -> RequestContext:
     """Password re-entered within the last 30 minutes (BUSINESS_RULES §1)."""
     if ctx.user_id is None:

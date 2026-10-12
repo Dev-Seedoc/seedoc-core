@@ -1,0 +1,30 @@
+"""Document languages (DATA_MODEL §2): ISO 639-1 lowercase codes, checked here rather than by a DB enum, so adding
+one needs no migration. Search maps them to a Postgres text search configuration with `ts_config_for_language`."""
+
+SUPPORTED_LANGUAGES = (
+    "de",
+    "en",
+    "fr",
+    "es",
+    "it",
+    "nl",
+    "pl",
+    "cs",
+    "pt",
+    "sv",
+    "da",
+    "fi",
+    "nb",
+    "hu",
+    "ro",
+    "sk",
+    "sl",
+    "hr",
+    "tr",
+    "ru",
+    "uk",
+    "el",
+    "bg",
+    "ja",
+    "zh",
+)

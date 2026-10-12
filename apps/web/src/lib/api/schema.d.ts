@@ -244,6 +244,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/app/tenants/{tenant_id}/spaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Spaces */
+        get: operations["list_spaces"];
+        put?: never;
+        /** Create Space */
+        post: operations["create_space"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/app/tenants/{tenant_id}/spaces/{space_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Space */
+        patch: operations["update_space"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -332,6 +367,13 @@ export interface components {
          * @enum {string}
          */
         OperatorRole: "admin" | "member";
+        /** Page[SpaceRead] */
+        Page_SpaceRead_: {
+            /** Items */
+            items: components["schemas"]["SpaceRead"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
         /** Page[StaffTenantListItem] */
         Page_StaffTenantListItem_: {
             /** Items */
@@ -362,6 +404,31 @@ export interface components {
         ReauthenticateRequest: {
             /** Password */
             password: string;
+        };
+        /** SpaceCreate */
+        SpaceCreate: {
+            /** Name */
+            name: string;
+        };
+        /** SpaceRead */
+        SpaceRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** SpaceUpdate */
+        SpaceUpdate: {
+            /** Name */
+            name?: string | null;
         };
         /** StaffTenantCreate */
         StaffTenantCreate: {
@@ -996,6 +1063,108 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_StaffUserListItem_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_spaces: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_SpaceRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_space: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SpaceCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpaceRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_space: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                space_id: string;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SpaceUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpaceRead"];
                 };
             };
             /** @description Validation Error */

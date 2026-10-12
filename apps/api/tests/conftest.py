@@ -189,7 +189,7 @@ class MemberClient:
 
 
 class ClientAs(Protocol):
-    async def __call__(self, role: MemberRole) -> MemberClient: ...
+    async def __call__(self, role: MemberRole, tenant: Tenant | None = None) -> MemberClient: ...
 
 
 @pytest.fixture
@@ -242,6 +242,9 @@ async def client_as(
 ) -> AsyncIterator[ClientAs]:
     """`await client_as(role)` → a `MemberClient` logged in as a fresh member of a fresh tenant.
 
+    `await client_as(role, tenant=other.tenant)` adds the fresh member to an existing tenant instead, e.g. an editor
+    next to an owner to test a 403 on the owner's data.
+
     The session row is created with `security.tokens` (the same hashing the API uses) and the client sends the
     `Origin` header the CSRF check expects. All clients are closed after the test.
     """
@@ -249,8 +252,8 @@ async def client_as(
     app = create_app()
     origin = get_settings().app_url
 
-    async def factory(role: MemberRole) -> MemberClient:
-        tenant = await make_tenant()
+    async def factory(role: MemberRole, tenant: Tenant | None = None) -> MemberClient:
+        tenant = tenant or await make_tenant()
         user = await make_user()
         member = await make_member(tenant, user, role)
 

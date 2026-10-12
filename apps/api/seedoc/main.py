@@ -16,6 +16,7 @@ from seedoc.config import get_settings
 from seedoc.db.engine import dispose_engines
 from seedoc.errors import AppError, ErrorCode
 from seedoc.mail.send import send_pending_mail
+from seedoc.routers import app as app_routes
 from seedoc.routers import auth, health, staff
 from seedoc.security.csrf import csrf_middleware
 
@@ -124,4 +125,5 @@ def create_app() -> FastAPI:
     app.include_router(health.router, prefix=API_PREFIX)
     app.include_router(auth.router, prefix=API_PREFIX)
     app.include_router(staff.router, prefix=API_PREFIX)
+    app.include_router(app_routes.router, prefix=API_PREFIX)
     return app
