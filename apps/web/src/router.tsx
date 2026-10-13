@@ -1,5 +1,6 @@
 import { createBrowserRouter, type RouteObject } from "react-router";
 
+import { DocumentsPage } from "@/app/documents/DocumentsPage";
 import { AcceptInvitationPage } from "@/auth/AcceptInvitationPage";
 import { AuthLayout } from "@/auth/AuthLayout";
 import { ForgotPasswordPage } from "@/auth/ForgotPasswordPage";
@@ -24,7 +25,7 @@ export const routes: RouteObject[] = [
       { index: true, element: <PagePlaceholder /> },
       {
         path: "documents",
-        element: <PagePlaceholder />,
+        element: <DocumentsPage />,
         handle: { crumb: (t) => t("shell.nav.documents") } satisfies RouteHandle,
       },
       {

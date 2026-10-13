@@ -123,6 +123,28 @@
       "description": "This page will be available soon."
     }
   },
+  "documents": {
+    "page": {
+      "title": "Documents"
+    },
+    "spaces": {
+      "label": "Space",
+      "emptyTitle": "No spaces yet",
+      "emptyDescription": "Spaces organise your documentation, e.g. by product line. An administrator can create a space.",
+      "loadFailed": "The spaces could not be loaded."
+    },
+    "folders": {
+      "treeLabel": "Folders in {{space}}",
+      "emptyTitle": "No folders yet",
+      "emptyDescription": "This space has no folders yet.",
+      "loadFailed": "The folders could not be loaded.",
+      "noSelection": "No folder selected"
+    },
+    "list": {
+      "comingSoonTitle": "Document list coming soon",
+      "comingSoonDescription": "The documents of the selected folder will be shown here soon."
+    }
+  },
   "auth": {
     "login": {
       "title": "Log in",

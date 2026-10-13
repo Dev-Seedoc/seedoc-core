@@ -4,14 +4,22 @@ import { client } from "./client";
 import { toApiError } from "./errors";
 import type {
   AcceptInvitationRequest,
+  FolderCreate,
+  FolderRead,
+  FolderUpdate,
   HealthRead,
   InvitationPreview,
   LoginRequest,
   MeRead,
+  Page_FolderRead_,
+  Page_SpaceRead_,
   Page_StaffTenantListItem_,
   PasswordResetConfirmRequest,
   PasswordResetRequest,
   ReauthenticateRequest,
+  SpaceCreate,
+  SpaceRead,
+  SpaceUpdate,
   StaffTenantCreate,
   StaffTenantRead,
   StaffTenantUpdate,
@@ -105,4 +113,60 @@ export function staffGetTenant(tenantId: string): Promise<StaffTenantRead> {
 
 export function staffUpdateTenant(tenantId: string, body: StaffTenantUpdate): Promise<StaffTenantRead> {
   return unwrap(client.PATCH("/api/v1/staff/tenants/{tenant_id}", { params: { path: { tenant_id: tenantId } }, body }));
+}
+
+// Manufacturer app: spaces and folders (API.md §3.2)
+
+function tenantPath(tenantId: string) {
+  return { tenant_id: tenantId };
+}
+
+export function listSpaces(tenantId: string): Promise<Page_SpaceRead_> {
+  return unwrap(client.GET("/api/v1/app/tenants/{tenant_id}/spaces", { params: { path: tenantPath(tenantId) } }));
+}
+
+export function createSpace(tenantId: string, body: SpaceCreate): Promise<SpaceRead> {
+  return unwrap(
+    client.POST("/api/v1/app/tenants/{tenant_id}/spaces", { params: { path: tenantPath(tenantId) }, body }),
+  );
+}
+
+export function updateSpace(tenantId: string, spaceId: string, body: SpaceUpdate): Promise<SpaceRead> {
+  return unwrap(
+    client.PATCH("/api/v1/app/tenants/{tenant_id}/spaces/{space_id}", {
+      params: { path: { ...tenantPath(tenantId), space_id: spaceId } },
+      body,
+    }),
+  );
+}
+
+export function listFolders(tenantId: string, spaceId: string): Promise<Page_FolderRead_> {
+  return unwrap(
+    client.GET("/api/v1/app/tenants/{tenant_id}/folders", {
+      params: { path: tenantPath(tenantId), query: { space_id: spaceId } },
+    }),
+  );
+}
+
+export function createFolder(tenantId: string, body: FolderCreate): Promise<FolderRead> {
+  return unwrap(
+    client.POST("/api/v1/app/tenants/{tenant_id}/folders", { params: { path: tenantPath(tenantId) }, body }),
+  );
+}
+
+export function updateFolder(tenantId: string, folderId: string, body: FolderUpdate): Promise<FolderRead> {
+  return unwrap(
+    client.PATCH("/api/v1/app/tenants/{tenant_id}/folders/{folder_id}", {
+      params: { path: { ...tenantPath(tenantId), folder_id: folderId } },
+      body,
+    }),
+  );
+}
+
+export function deleteFolder(tenantId: string, folderId: string): Promise<void> {
+  return unwrapEmpty(
+    client.DELETE("/api/v1/app/tenants/{tenant_id}/folders/{folder_id}", {
+      params: { path: { ...tenantPath(tenantId), folder_id: folderId } },
+    }),
+  );
 }

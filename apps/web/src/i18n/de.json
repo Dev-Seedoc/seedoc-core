@@ -123,6 +123,28 @@
       "description": "Diese Seite wird in Kürze verfügbar sein."
     }
   },
+  "documents": {
+    "page": {
+      "title": "Dokumente"
+    },
+    "spaces": {
+      "label": "Bereich",
+      "emptyTitle": "Noch keine Bereiche",
+      "emptyDescription": "Bereiche gliedern Ihre Dokumentation, z. B. nach Produktlinie. Ein Administrator kann einen Bereich anlegen.",
+      "loadFailed": "Die Bereiche konnten nicht geladen werden."
+    },
+    "folders": {
+      "treeLabel": "Ordner in {{space}}",
+      "emptyTitle": "Noch keine Ordner",
+      "emptyDescription": "In diesem Bereich gibt es noch keine Ordner.",
+      "loadFailed": "Die Ordner konnten nicht geladen werden.",
+      "noSelection": "Kein Ordner ausgewählt"
+    },
+    "list": {
+      "comingSoonTitle": "Dokumentenliste folgt",
+      "comingSoonDescription": "Hier sehen Sie bald die Dokumente des ausgewählten Ordners."
+    }
+  },
   "auth": {
     "login": {
       "title": "Anmelden",

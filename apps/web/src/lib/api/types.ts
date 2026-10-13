@@ -4,6 +4,11 @@ import type { components } from "./schema";
 type Schemas = components["schemas"];
 
 export type AcceptInvitationRequest = Schemas["AcceptInvitationRequest"];
+export type AccessLevel = Schemas["AccessLevel"];
+export type DocType = Schemas["DocType"];
+export type FolderCreate = Schemas["FolderCreate"];
+export type FolderRead = Schemas["FolderRead"];
+export type FolderUpdate = Schemas["FolderUpdate"];
 export type HealthRead = Schemas["HealthRead"];
 export type InvitationKind = Schemas["InvitationKind"];
 export type InvitationPreview = Schemas["InvitationPreview"];
@@ -12,11 +17,16 @@ export type MemberRole = Schemas["MemberRole"];
 export type MeRead = Schemas["MeRead"];
 export type OperatorOrgMembershipRead = Schemas["OperatorOrgMembershipRead"];
 export type OperatorRole = Schemas["OperatorRole"];
-// Page[StaffTenantListItem] (NAMING §4) under the name FastAPI generates for it.
+// Page[...] (NAMING §4) under the names FastAPI generates for them.
+export type Page_FolderRead_ = Schemas["Page_FolderRead_"];
+export type Page_SpaceRead_ = Schemas["Page_SpaceRead_"];
 export type Page_StaffTenantListItem_ = Schemas["Page_StaffTenantListItem_"];
 export type PasswordResetConfirmRequest = Schemas["PasswordResetConfirmRequest"];
 export type PasswordResetRequest = Schemas["PasswordResetRequest"];
 export type ReauthenticateRequest = Schemas["ReauthenticateRequest"];
+export type SpaceCreate = Schemas["SpaceCreate"];
+export type SpaceRead = Schemas["SpaceRead"];
+export type SpaceUpdate = Schemas["SpaceUpdate"];
 export type StaffTenantCreate = Schemas["StaffTenantCreate"];
 export type StaffTenantInvitationRead = Schemas["StaffTenantInvitationRead"];
 export type StaffTenantListItem = Schemas["StaffTenantListItem"];

@@ -8,6 +8,10 @@ export const queryKeys = {
   },
   tenants: {
     all: (tenantId: string) => ["tenants", tenantId] as const,
+    spaces: (tenantId: string) => ["tenants", tenantId, "spaces"] as const,
+    // Every space's folder list; a folder change invalidates this prefix.
+    allFolders: (tenantId: string) => ["tenants", tenantId, "folders"] as const,
+    folders: (tenantId: string, spaceId: string) => ["tenants", tenantId, "folders", spaceId] as const,
   },
   // Staff data is not tenant-scoped (admin DB engine); logout drops it like every non-auth query.
   staff: {
