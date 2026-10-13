@@ -21,9 +21,14 @@ git -C "$root" fetch origin --prune --quiet
 git -C "$root" rev-parse --verify --quiet "$ref" >/dev/null || { echo "No such branch: $ref" >&2; exit 1; }
 
 dir="$(mktemp -d)/seedoc-check"
+# Keeps the checks' exit code: a failed clean-up (Windows cannot delete a folder that is still in use) must neither
+# fail a passed check nor pass a failed one.
 cleanup() {
-  rm -rf "$dir"
-  git -C "$root" worktree prune
+  local status=$?
+  cd "$root"
+  rm -rf "$dir" || echo "warning: could not remove $dir" >&2
+  git -C "$root" worktree prune || true
+  exit "$status"
 }
 trap cleanup EXIT
 git -C "$root" worktree add --quiet --detach "$dir" "$ref"
