@@ -59,6 +59,8 @@ services:
         for i in $$(seq 1 30); do $$s3 list-buckets >/dev/null 2>&1 && break; sleep 1; done
         $$s3 head-bucket --bucket seedoc-local 2>/dev/null || $$s3 create-bucket --bucket seedoc-local
         $$s3 put-bucket-versioning --bucket seedoc-local --versioning-configuration Status=Enabled
+        # The web app (make dev, :5173) PUTs uploads straight to the presigned URL, so the browser needs CORS.
+        $$s3 put-bucket-cors --bucket seedoc-local --cors-configuration '{"CORSRules":[{"AllowedOrigins":["http://localhost:5173"],"AllowedMethods":["PUT","GET"],"AllowedHeaders":["content-type"],"MaxAgeSeconds":3600}]}'
         echo "bucket seedoc-local ready"
     restart: "no"
 
