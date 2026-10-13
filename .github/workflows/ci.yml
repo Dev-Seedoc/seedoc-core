@@ -55,6 +55,8 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          # This job runs a long-lived `uv run uvicorn`; the post step's `uv cache prune` must not race it.
+          prune-cache: false
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -93,8 +95,12 @@ jobs:
       - run: make seed ARGS=--e2e-staff
       - name: Start API and web app
         run: |
-          (cd apps/api && nohup uv run uvicorn seedoc.main:create_app --factory --port 8000 > "$RUNNER_TEMP/api.log" 2>&1 &)
-          nohup pnpm --dir apps/web dev > "$RUNNER_TEMP/web.log" 2>&1 &
+          # `setsid` makes each server its own process-group leader, so the stop step can take its children
+          # (uvicorn, esbuild) with it instead of leaving them for the runner to reap as orphans.
+          (cd apps/api && setsid nohup uv run uvicorn seedoc.main:create_app --factory --port 8000 \
+            > "$RUNNER_TEMP/api.log" 2>&1 & echo $! > "$RUNNER_TEMP/api.pid")
+          setsid nohup pnpm --dir apps/web dev > "$RUNNER_TEMP/web.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/web.pid"
           # Through the Vite proxy, so this waits for both.
           for _ in $(seq 1 60); do curl -sf http://localhost:5173/api/v1/health > /dev/null && exit 0; sleep 1; done
           echo "::error::API or web app did not answer within 60 s"; tail -n 50 "$RUNNER_TEMP/api.log" "$RUNNER_TEMP/web.log"; exit 1
@@ -111,6 +117,24 @@ jobs:
             apps/web/test-results/
             apps/web/playwright-report/
           retention-days: 7
+      # Runs after the logs and the artifact are collected, so a failed run still reports why.
+      - name: Stop API and web app
+        if: always()
+        run: |
+          # Kill each process group (setsid made the server its leader), then fall back to the single PID in case
+          # setsid had to fork. The explicit pkill is the safety net that must succeed: nothing may still hold the
+          # uv cache when the setup-uv post step runs.
+          for name in api web; do
+            pid_file="$RUNNER_TEMP/$name.pid"
+            [ -f "$pid_file" ] || continue
+            pid="$(cat "$pid_file")"
+            kill -- "-$pid" 2>/dev/null || kill "$pid" 2>/dev/null || true
+          done
+          pkill -f "uvicorn seedoc.main:create_app" 2>/dev/null || true
+          for _ in $(seq 1 20); do
+            pgrep -f "uvicorn seedoc.main:create_app" > /dev/null || break
+            sleep 1
+          done
 
   images:
     runs-on: ubuntu-latest
