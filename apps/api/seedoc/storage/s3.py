@@ -6,6 +6,8 @@ who has it.
 """
 
 import asyncio
+import hashlib
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 from typing import TYPE_CHECKING
@@ -76,6 +78,50 @@ async def put_object(key: str, body: bytes, content_type: str) -> None:
     """Store `body` under `key` (used by jobs, e.g. exports; browsers upload through `presign_put`)."""
     client, bucket = get_s3_client(), get_settings().s3_bucket
     await asyncio.to_thread(lambda: client.put_object(Bucket=bucket, Key=key, Body=body, ContentType=content_type))
+
+
+@dataclass(frozen=True)
+class StoredObject:
+    """What is really stored under a key, read in full: size, SHA-256 and the first bytes (magic number)."""
+
+    size_bytes: int
+    sha256: bytes
+    head: bytes
+
+
+async def read_object_digest(key: str, head_length: int = 8) -> StoredObject | None:
+    """Stream the object once and hash it (an upload is ≤ 100 MB, so nothing is held in memory). `None` if the key
+    does not exist — the browser never finished its PUT."""
+    client, bucket = get_s3_client(), get_settings().s3_bucket
+
+    def read() -> StoredObject | None:
+        try:
+            response = client.get_object(Bucket=bucket, Key=key)
+        except client.exceptions.NoSuchKey:
+            return None
+        digest, size, head = hashlib.sha256(), 0, b""
+        for chunk in response["Body"].iter_chunks(chunk_size=1024 * 1024):
+            if len(head) < head_length:
+                head += chunk[: head_length - len(head)]
+            digest.update(chunk)
+            size += len(chunk)
+        return StoredObject(size_bytes=size, sha256=digest.digest(), head=head)
+
+    return await asyncio.to_thread(read)
+
+
+async def copy_object(source_key: str, target_key: str) -> None:
+    """Server-side copy inside the bucket (no download), e.g. a verified upload to its version key."""
+    client, bucket = get_s3_client(), get_settings().s3_bucket
+    await asyncio.to_thread(
+        lambda: client.copy_object(
+            Bucket=bucket,
+            Key=target_key,
+            CopySource={"Bucket": bucket, "Key": source_key},
+            ContentType="application/pdf",
+            MetadataDirective="REPLACE",
+        )
+    )
 
 
 async def delete_object(key: str) -> None:
