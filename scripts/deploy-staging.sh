@@ -29,10 +29,12 @@ tar -c -C infra/staging compose.yml Caddyfile postgres-init -C "$ROOT/infra/post
 
 echo "== migrate and restart"
 ssh_run "set -e; cd $APP_DIR
-  if grep -q FILL_IN .env; then echo 'WARNING: .env still has FILL_IN values (S3 / mail) — see README §15'; fi
+  if grep -q FILL_IN .env; then echo 'WARNING: .env still has FILL_IN values (mail) — see README §15'; fi
   docker compose up -d --wait postgres
   docker compose run --rm migrate
-  docker compose up -d --remove-orphans api web
+  docker compose up -d s3
+  docker compose run --rm s3-init
+  docker compose up -d --remove-orphans s3 api web
   docker image prune -f >/dev/null"
 
 echo "== health check"
