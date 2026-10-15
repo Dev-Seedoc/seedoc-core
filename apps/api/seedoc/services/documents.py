@@ -418,7 +418,7 @@ async def _get_folder_paths(db: AsyncSession, tenant_id: UUID) -> dict[UUID, str
     """`{folder id: "<space name>/<folder>/<subfolder>"}` for the whole tenant (BUSINESS_RULES §6 `folder_path`)."""
     folders = list(await db.scalars(select(Folder).where(Folder.tenant_id == tenant_id)))
     rows = await db.execute(select(Space.id, Space.name).where(Space.tenant_id == tenant_id))
-    space_names = {space_id: name for space_id, name in rows.all()}
+    space_names = {row.id: row.name for row in rows}
     paths = build_folder_paths(folders)
     return {folder.id: space_names[folder.space_id] + PATH_SEPARATOR + paths[folder.id] for folder in folders}
 
