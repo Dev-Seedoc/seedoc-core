@@ -8,5 +8,7 @@ export const DOCUMENT_COLUMNS = [
   "version",
   "status",
   "updatedAt",
+  // Only in the trash view.
+  "trashedAt",
 ] as const;
 export type DocumentColumn = (typeof DOCUMENT_COLUMNS)[number];

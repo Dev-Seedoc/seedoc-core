@@ -124,13 +124,12 @@ describe("document hooks", () => {
     expect(result.current.hasNextPage).toBe(false);
   });
 
-  it("reloads the document list after trashing, also when it failed", async () => {
+  it("trashes several documents, reports failures and reloads the list once", async () => {
     const fetchMock = stubApi({
       [DOCUMENTS]: { status: 200, body: { items: [documentItem("d-1")], next_cursor: null } },
-      [`POST /api/v1/app/tenants/${TENANT_ID}/documents/d-1/trash`]: {
-        status: 409,
-        body: { error: { code: "conflict", message: "", details: {} } },
-      },
+      [`POST /api/v1/app/tenants/${TENANT_ID}/documents/d-1/trash`]: { status: 200, body: {} },
+      [`POST /api/v1/app/tenants/${TENANT_ID}/documents/d-2/trash`]: { status: 200, body: {} },
+      // d-3: no answer stubbed → 404 not_found
     });
     const { result } = renderHook(
       () => ({ documents: useDocuments(TENANT_ID, {}), trash: useTrashDocument(TENANT_ID) }),
@@ -140,10 +139,12 @@ describe("document hooks", () => {
       expect(result.current.documents.isSuccess).toBe(true);
     });
 
-    await act(() => result.current.trash.mutateAsync("d-1").catch(() => undefined));
+    const outcome = await act(() => result.current.trash.mutateAsync(["d-1", "d-2", "d-3"]));
 
+    expect(outcome).toEqual({ succeeded: ["d-1", "d-2"], failed: ["d-3"] });
     await waitFor(() => {
       expect(fetchMock.mock.calls.filter(([request]) => request.method === "GET")).toHaveLength(2);
     });
+    expect(fetchMock.mock.calls.filter(([request]) => request.method === "POST")).toHaveLength(3);
   });
 });

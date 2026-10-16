@@ -108,8 +108,27 @@ export function useDocuments(tenantId: string, query: Omit<ListDocumentsQuery, "
   });
 }
 
-// Trash and restore change which list a document belongs to: reload every document list. Bulk actions call
-// `mutateAsync` per document and report the results themselves, so the global toast is off.
+// What a trash or restore of several documents did. Both actions are safe to repeat (API: trashing a trashed
+// document changes nothing), so a partly failed batch can simply be run again for `failed`.
+export interface BulkResult {
+  succeeded: string[];
+  failed: string[];
+}
+
+// One request per document (the API has no bulk endpoint), all at once; never throws, the caller reports the result.
+async function runForEach(
+  documentIds: string[],
+  action: (documentId: string) => Promise<unknown>,
+): Promise<BulkResult> {
+  const results = await Promise.allSettled(documentIds.map(action));
+  return {
+    succeeded: documentIds.filter((_, index) => results[index]?.status === "fulfilled"),
+    failed: documentIds.filter((_, index) => results[index]?.status === "rejected"),
+  };
+}
+
+// Trash and restore change which list a document belongs to: every document list is reloaded once the whole batch
+// is done (not once per document). One document is a list of one.
 function useInvalidateDocuments(tenantId: string) {
   const queryClient = useQueryClient();
   return () => queryClient.invalidateQueries({ queryKey: queryKeys.tenants.allDocuments(tenantId) });
@@ -118,8 +137,7 @@ function useInvalidateDocuments(tenantId: string) {
 export function useTrashDocument(tenantId: string) {
   const invalidateDocuments = useInvalidateDocuments(tenantId);
   return useMutation({
-    mutationFn: (documentId: string) => trashDocument(tenantId, documentId),
-    meta: { errorToast: false },
+    mutationFn: (documentIds: string[]) => runForEach(documentIds, (id) => trashDocument(tenantId, id)),
     onSettled: invalidateDocuments,
   });
 }
@@ -127,8 +145,7 @@ export function useTrashDocument(tenantId: string) {
 export function useRestoreDocument(tenantId: string) {
   const invalidateDocuments = useInvalidateDocuments(tenantId);
   return useMutation({
-    mutationFn: (documentId: string) => restoreDocument(tenantId, documentId),
-    meta: { errorToast: false },
+    mutationFn: (documentIds: string[]) => runForEach(documentIds, (id) => restoreDocument(tenantId, id)),
     onSettled: invalidateDocuments,
   });
 }

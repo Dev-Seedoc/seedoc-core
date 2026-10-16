@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { DocumentListItem, FolderRead, MeRead, SpaceRead } from "@/lib/api/types";
-import { apiError, renderRoute, stubApi, TEST_ME } from "@/test/renderRoute";
+import { apiError, type FakeAnswer, renderRoute, stubApi, TEST_ME } from "@/test/renderRoute";
 
 const TENANT_ID = "00000000-0000-4000-8000-00000000000a";
 const SPACES = `GET /api/v1/app/tenants/${TENANT_ID}/spaces`;
@@ -478,6 +478,7 @@ describe("DocumentsPage – documents table", () => {
       .getAllByRole("cell")
       .map((cell) => cell.textContent);
     expect(cells).toEqual([
+      "", // selection checkbox
       "Datenblatt Pumpe",
       "Datenblatt",
       "Englisch",
@@ -594,7 +595,11 @@ describe("DocumentsPage – columns", () => {
   const STORAGE_KEY = "seedoc.documentsTable.hiddenColumns";
 
   function columnHeaders(): string[] {
-    return screen.getAllByRole("columnheader").map((header) => header.textContent);
+    // Without the selection column (a checkbox, no text).
+    return screen
+      .getAllByRole("columnheader")
+      .map((header) => header.textContent)
+      .filter((text) => text !== "");
   }
 
   async function openColumnsMenu() {
@@ -649,5 +654,240 @@ describe("DocumentsPage – columns", () => {
 
     expect(within(menu).queryByRole("menuitemcheckbox", { name: "Ordner" })).not.toBeInTheDocument();
     expect(within(menu).getByRole("menuitemcheckbox", { name: "Sprache" })).toHaveAttribute("aria-checked", "true");
+  });
+});
+
+describe("DocumentsPage – selection", () => {
+  const DOCS = [
+    documentItem("d1", "Datenblatt Pumpe"),
+    documentItem("d2", "Schaltplan"),
+    documentItem("d3", "Wartungsplan"),
+  ];
+
+  it("selects single rows and shows how many are selected", async () => {
+    stubLibraryWithDocuments(DOCS);
+    renderRoute("/documents", TEST_ME);
+
+    fireEvent.click(await screen.findByRole("checkbox", { name: "„Datenblatt Pumpe“ auswählen" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "„Wartungsplan“ auswählen" }));
+
+    expect(screen.getByText("2 Dokumente ausgewählt")).toBeInTheDocument();
+    const all = screen.getByRole("checkbox", { name: "Alle geladenen Dokumente auswählen" });
+    expect(all).not.toBeChecked();
+    expect((all as HTMLInputElement).indeterminate).toBe(true);
+    expect(screen.getByRole("link", { name: "Datenblatt Pumpe" }).closest("tr")).toHaveAttribute(
+      "data-state",
+      "selected",
+    );
+  });
+
+  it("selects all loaded rows and clears the selection again", async () => {
+    stubLibraryWithDocuments(DOCS);
+    renderRoute("/documents", TEST_ME);
+
+    fireEvent.click(await screen.findByRole("checkbox", { name: "Alle geladenen Dokumente auswählen" }));
+    expect(screen.getByText("3 Dokumente ausgewählt")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Auswahl aufheben" }));
+
+    expect(screen.queryByText(/ausgewählt$/)).not.toBeInTheDocument();
+    expect(screen.getAllByRole("checkbox").every((box) => !(box as HTMLInputElement).checked)).toBe(true);
+  });
+
+  it("forgets the selection when the filters change", async () => {
+    stubLibraryWithDocuments(DOCS);
+    renderRoute("/documents", TEST_ME);
+    fireEvent.click(await screen.findByRole("checkbox", { name: "„Schaltplan“ auswählen" }));
+    expect(screen.getByText("1 Dokument ausgewählt")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Sprache"), { target: { value: "de" } });
+
+    await waitFor(() => {
+      expect(screen.queryByText("1 Dokument ausgewählt")).not.toBeInTheDocument();
+    });
+    expect(await screen.findByRole("checkbox", { name: "„Schaltplan“ auswählen" })).not.toBeChecked();
+  });
+});
+
+describe("DocumentsPage – move to trash", () => {
+  const TRASH = (id: string) => `POST /api/v1/app/tenants/${TENANT_ID}/documents/${id}/trash`;
+
+  // Documents that disappear from the list once trashed; `failing` ids answer 500.
+  function stubTrash(documents: DocumentListItem[], failing: string[] = []) {
+    let listed = [...documents];
+    const answers: Record<string, FakeAnswer> = {
+      [SPACES]: page([HANDBUECHER]),
+      [FOLDERS]: page([]),
+      [DOCUMENTS_LIST]: () => page(listed),
+    };
+    for (const item of documents) {
+      answers[TRASH(item.id)] = () => {
+        if (failing.includes(item.id)) {
+          return apiError(500, "internal_error");
+        }
+        listed = listed.filter((entry) => entry.id !== item.id);
+        return { status: 200, body: {} };
+      };
+    }
+    return stubApi(answers);
+  }
+
+  async function selectAndConfirm(titles: string[]) {
+    for (const title of titles) {
+      fireEvent.click(await screen.findByRole("checkbox", { name: `„${title}“ auswählen` }));
+    }
+    fireEvent.click(screen.getByRole("button", { name: "In den Papierkorb" }));
+    return screen.findByRole("alertdialog");
+  }
+
+  it("moves the selected documents after confirming", async () => {
+    const fetchMock = stubTrash([
+      documentItem("d1", "Datenblatt"),
+      documentItem("d2", "Schaltplan"),
+      documentItem("d3", "Wartungsplan"),
+    ]);
+    renderRoute("/documents", TEST_ME);
+    const success = vi.spyOn(toast, "success");
+
+    const dialog = await selectAndConfirm(["Datenblatt", "Wartungsplan"]);
+    expect(
+      within(dialog).getByRole("heading", { name: "2 Dokumente in den Papierkorb verschieben?" }),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText(/30 Tage lang wiederherstellen/)).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([request]) => request.method === "POST")).toBe(false);
+    fireEvent.click(within(dialog).getByRole("button", { name: "In den Papierkorb" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("link", { name: "Datenblatt" })).not.toBeInTheDocument();
+    });
+    expect(screen.queryByRole("link", { name: "Wartungsplan" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Schaltplan" })).toBeInTheDocument();
+    expect(success).toHaveBeenCalledWith("2 Dokumente in den Papierkorb verschoben.");
+    expect(screen.queryByText(/ausgewählt$/)).not.toBeInTheDocument();
+  });
+
+  it("sends nothing when the confirmation is cancelled", async () => {
+    const fetchMock = stubTrash([documentItem("d1", "Datenblatt")]);
+    renderRoute("/documents", TEST_ME);
+
+    const dialog = await selectAndConfirm(["Datenblatt"]);
+    expect(
+      within(dialog).getByRole("heading", { name: "1 Dokument in den Papierkorb verschieben?" }),
+    ).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Abbrechen" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    });
+    expect(fetchMock.mock.calls.some(([request]) => request.method === "POST")).toBe(false);
+    expect(screen.getByText("1 Dokument ausgewählt")).toBeInTheDocument();
+  });
+
+  it("keeps the documents that failed selected and says so", async () => {
+    stubTrash([documentItem("d1", "Datenblatt"), documentItem("d2", "Schaltplan")], ["d2"]);
+    renderRoute("/documents", TEST_ME);
+    const error = vi.spyOn(toast, "error");
+
+    const dialog = await selectAndConfirm(["Datenblatt", "Schaltplan"]);
+    fireEvent.click(within(dialog).getByRole("button", { name: "In den Papierkorb" }));
+
+    await waitFor(() => {
+      expect(error).toHaveBeenCalledWith(
+        "1 verschoben, 1 fehlgeschlagen. Die fehlgeschlagenen Dokumente bleiben ausgewählt.",
+      );
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole("link", { name: "Datenblatt" })).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole("checkbox", { name: "„Schaltplan“ auswählen" })).toBeChecked();
+    expect(screen.getByText("1 Dokument ausgewählt")).toBeInTheDocument();
+  });
+});
+
+describe("DocumentsPage – trash", () => {
+  const RESTORE = (id: string) => `POST /api/v1/app/tenants/${TENANT_ID}/documents/${id}/restore`;
+  const TRASHED_AT = "2026-10-15T09:30:00Z";
+
+  // The API with include_trashed: active and trashed documents mixed; restore takes a document out of the trash.
+  function stubTrashView(documents: DocumentListItem[]) {
+    let all = [...documents];
+    const answers: Record<string, FakeAnswer> = {
+      [SPACES]: page([HANDBUECHER]),
+      [FOLDERS]: page(FOLDERS_OF.handbuecher ?? []),
+      [DOCUMENTS_LIST]: (request) =>
+        page(
+          new URL(request.url).searchParams.get("include_trashed") === "true" ? all : all.filter((d) => !d.trashed_at),
+        ),
+    };
+    for (const item of documents) {
+      answers[RESTORE(item.id)] = () => {
+        all = all.map((entry) => (entry.id === item.id ? { ...entry, trashed_at: null } : entry));
+        return { status: 200, body: {} };
+      };
+    }
+    return stubApi(answers);
+  }
+
+  const MIXED = [
+    documentItem("d1", "Aktives Dokument"),
+    documentItem("d2", "Altes Datenblatt", { trashed_at: TRASHED_AT }),
+    documentItem("d3", "Alter Schaltplan", { trashed_at: TRASHED_AT }),
+  ];
+
+  it("shows only trashed documents with the date they were deleted", async () => {
+    const fetchMock = stubTrashView(MIXED);
+    const router = renderRoute("/documents", TEST_ME);
+    await screen.findByRole("link", { name: "Aktives Dokument" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Papierkorb" }));
+
+    expect(await screen.findByRole("link", { name: "Altes Datenblatt" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Alter Schaltplan" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Aktives Dokument" })).not.toBeInTheDocument();
+    expect(router.state.location.search).toBe("?space_id=handbuecher&tab=trash");
+    expect(screen.getByRole("button", { name: "Papierkorb" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText(/30 Tage lang wiederherstellen/)).toBeInTheDocument();
+    const headers = screen.getAllByRole("columnheader").map((header) => header.textContent);
+    expect(headers).toContain("Gelöscht am");
+    expect(headers).not.toContain("Status");
+    const last = documentRequests(fetchMock).at(-1);
+    expect([last?.get("include_trashed"), last?.get("limit")]).toEqual(["true", "200"]);
+  });
+
+  it("restores one document from its row", async () => {
+    stubTrashView(MIXED);
+    renderRoute("/documents?space_id=handbuecher&tab=trash", TEST_ME);
+    const success = vi.spyOn(toast, "success");
+
+    fireEvent.click(await screen.findByRole("button", { name: "„Altes Datenblatt“ wiederherstellen" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("link", { name: "Altes Datenblatt" })).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole("link", { name: "Alter Schaltplan" })).toBeInTheDocument();
+    expect(success).toHaveBeenCalledWith("1 Dokument wiederhergestellt.");
+  });
+
+  it("restores the selection and then shows an empty trash", async () => {
+    stubTrashView(MIXED);
+    renderRoute("/documents?space_id=handbuecher&tab=trash", TEST_ME);
+
+    fireEvent.click(await screen.findByRole("checkbox", { name: "Alle geladenen Dokumente auswählen" }));
+    expect(screen.getByText("2 Dokumente ausgewählt")).toBeInTheDocument();
+    // The selection bar offers restoring, not trashing.
+    expect(screen.queryByRole("button", { name: "In den Papierkorb" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Wiederherstellen" }));
+
+    expect(await screen.findByRole("heading", { name: "Der Papierkorb ist leer" })).toBeInTheDocument();
+  });
+
+  it("stays in the trash when another folder is chosen", async () => {
+    stubTrashView([]);
+    const router = renderRoute("/documents?space_id=handbuecher&tab=trash", TEST_ME);
+
+    fireEvent.click(await screen.findByText("Wartung"));
+
+    await waitFor(() => {
+      expect(router.state.location.search).toBe("?space_id=handbuecher&folder_id=wartung&tab=trash");
+    });
   });
 });

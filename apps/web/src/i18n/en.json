@@ -195,7 +195,9 @@
       "emptyTitle": "No documents yet",
       "emptyDescription": "Uploaded documents appear here.",
       "noMatchesTitle": "No documents found",
-      "noMatchesDescription": "No document matches the selected filters."
+      "noMatchesDescription": "No document matches the selected filters.",
+      "trashedAt": "Deleted on",
+      "actions": "Actions"
     },
     "filters": {
       "label": "Filter documents",
@@ -213,6 +215,35 @@
     "columns": {
       "label": "Columns",
       "title": "Visible columns"
+    },
+    "selection": {
+      "selectAll": "Select all loaded documents",
+      "selectRow": "Select “{{title}}”",
+      "count_one": "{{count}} document selected",
+      "count_other": "{{count}} documents selected",
+      "clear": "Clear selection"
+    },
+    "trash": {
+      "moveToTrash": "Move to trash",
+      "confirmTitle_one": "Move {{count}} document to the trash?",
+      "confirmTitle_other": "Move {{count}} documents to the trash?",
+      "confirmDescription": "The documents disappear from the library and can be restored for 30 days. Releases that were already published keep showing their version.",
+      "moved_one": "{{count}} document moved to the trash.",
+      "moved_other": "{{count}} documents moved to the trash.",
+      "partlyMoved": "{{moved}} moved, {{failed}} failed. The failed documents stay selected.",
+      "restore": "Restore",
+      "restoreRow": "Restore “{{title}}”",
+      "restored_one": "{{count}} document restored.",
+      "restored_other": "{{count}} documents restored.",
+      "partlyRestored": "{{restored}} restored, {{failed}} failed. The failed documents stay selected.",
+      "hint": "Documents in the trash can be restored for 30 days. After that they are deleted for good unless a release contains them.",
+      "emptyTitle": "The trash is empty",
+      "emptyDescription": "Documents you move to the trash appear here."
+    },
+    "views": {
+      "label": "View",
+      "library": "Documents",
+      "trash": "Trash"
     }
   },
   "auth": {
