@@ -13,23 +13,26 @@ from seedoc.audit import write_audit_event
 from seedoc.db.engine import tenant_transaction
 from seedoc.deps import RequestContext
 from seedoc.errors import AppError, ErrorCode
-from seedoc.models.documents import Document, Folder, Space
+from seedoc.models.documents import Document, Folder
 from seedoc.schemas.common import Page
 from seedoc.schemas.folders import FolderCreate, FolderRead, FolderUpdate
+from seedoc.services.library import build_folder_paths, get_folder, get_path_sort_key, get_space
 
-PATH_SEPARATOR = "/"
 # DATA_MODEL §3: a name is unique among the folders with the same parent in one space (root folders: parent null).
 SIBLING_NAME_CONSTRAINT = "uq_folders_space_id_parent_id_name"
 
 
 async def list_folders(db: AsyncSession, ctx: RequestContext, space_id: UUID) -> Page[FolderRead]:
-    """Every folder of the space as a flat list sorted by `path`; the client builds the tree from `parent_id`.
-    A space's tree is needed whole, so the list is never paged (`next_cursor` null)."""
+    """Every folder of the space as a flat list sorted by `path` (folder by folder, German-friendly); the client
+    builds the tree from `parent_id`. A space's tree is needed whole, so the list is never paged (`next_cursor`
+    null)."""
     async with tenant_transaction(db, ctx.tenant_id) as tenant_id:
-        await _get_space(db, tenant_id, space_id)
+        await get_space(db, tenant_id, space_id)
         folders = await _list_space_folders(db, tenant_id, space_id)
-        paths = _build_paths(folders)
-        items = sorted((_to_read(folder, paths[folder.id]) for folder in folders), key=lambda item: item.path)
+        paths = build_folder_paths(folders)
+        items = sorted(
+            (_to_read(folder, paths[folder.id]) for folder in folders), key=lambda item: get_path_sort_key(item.path)
+        )
         return Page(items=items, next_cursor=None)
 
 
@@ -37,9 +40,9 @@ async def create_folder(db: AsyncSession, ctx: RequestContext, body: FolderCreat
     """A folder in the space, at the root (`parent_id` null) or below a parent of the same space."""
     try:
         async with tenant_transaction(db, ctx.tenant_id) as tenant_id:
-            await _get_space(db, tenant_id, body.space_id)
+            await get_space(db, tenant_id, body.space_id)
             if body.parent_id is not None:
-                parent = await _get_folder(db, tenant_id, body.parent_id)  # another tenant's folder → 404
+                parent = await get_folder(db, tenant_id, body.parent_id)  # another tenant's folder → 404
                 if parent.space_id != body.space_id:
                     raise AppError(
                         ErrorCode.VALIDATION_FAILED, "parent folder is in another space", details={"field": "parent_id"}
@@ -71,7 +74,7 @@ async def update_folder(db: AsyncSession, ctx: RequestContext, folder_id: UUID, 
     that changes nothing writes none."""
     try:
         async with tenant_transaction(db, ctx.tenant_id) as tenant_id:
-            folder = await _get_folder(db, tenant_id, folder_id)
+            folder = await get_folder(db, tenant_id, folder_id)
             changes: dict[str, Any] = {
                 field: value
                 for field, value in body.model_dump(exclude_unset=True).items()
@@ -97,7 +100,7 @@ async def delete_folder(db: AsyncSession, ctx: RequestContext, folder_id: UUID) 
     restored into it (API.md §3.2). Otherwise `409 conflict`."""
     try:
         async with tenant_transaction(db, ctx.tenant_id) as tenant_id:
-            folder = await _get_folder(db, tenant_id, folder_id)
+            folder = await get_folder(db, tenant_id, folder_id)
             has_subfolders = await db.scalar(
                 select(exists().where(Folder.tenant_id == tenant_id, Folder.parent_id == folder.id))
             )
@@ -141,45 +144,14 @@ def _is_sibling_name_conflict(exc: IntegrityError) -> bool:
     return SIBLING_NAME_CONSTRAINT in str(exc.orig)
 
 
-async def _get_space(db: AsyncSession, tenant_id: UUID, space_id: UUID) -> Space:
-    """The tenant's space, or `404 not_found` — also for another tenant's id, so its existence is not revealed."""
-    space = await db.scalar(select(Space).where(Space.id == space_id, Space.tenant_id == tenant_id))
-    if space is None:
-        raise AppError(ErrorCode.NOT_FOUND)
-    return space
-
-
-async def _get_folder(db: AsyncSession, tenant_id: UUID, folder_id: UUID) -> Folder:
-    """The tenant's folder, or `404 not_found` (same rule as `_get_space`)."""
-    folder = await db.scalar(select(Folder).where(Folder.id == folder_id, Folder.tenant_id == tenant_id))
-    if folder is None:
-        raise AppError(ErrorCode.NOT_FOUND)
-    return folder
-
-
 async def _list_space_folders(db: AsyncSession, tenant_id: UUID, space_id: UUID) -> Sequence[Folder]:
     rows = await db.scalars(select(Folder).where(Folder.tenant_id == tenant_id, Folder.space_id == space_id))
     return rows.all()
 
 
-def _build_paths(folders: Sequence[Folder]) -> dict[UUID, str]:
-    """`{folder id: "Root/Child/Folder"}` for folders that all belong to one space (parents are always in the same
-    space, so every parent is in `folders`)."""
-    by_id = {folder.id: folder for folder in folders}
-    paths: dict[UUID, str] = {}
-    for folder in folders:
-        names: list[str] = []
-        current: Folder | None = folder
-        while current is not None:
-            names.append(current.name)
-            current = by_id.get(current.parent_id) if current.parent_id is not None else None
-        paths[folder.id] = PATH_SEPARATOR.join(reversed(names))
-    return paths
-
-
 async def _read_folder(db: AsyncSession, tenant_id: UUID, folder: Folder) -> FolderRead:
     """One folder with its path; loads the space's folders, since any parent's name is part of it."""
-    paths = _build_paths(await _list_space_folders(db, tenant_id, folder.space_id))
+    paths = build_folder_paths(await _list_space_folders(db, tenant_id, folder.space_id))
     return _to_read(folder, paths[folder.id])
 
 

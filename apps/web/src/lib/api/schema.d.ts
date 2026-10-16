@@ -315,6 +315,128 @@ export interface paths {
         patch: operations["update_folder"];
         trace?: never;
     };
+    "/api/v1/app/tenants/{tenant_id}/uploads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Upload */
+        post: operations["create_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/app/tenants/{tenant_id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Documents */
+        get: operations["list_documents"];
+        put?: never;
+        /** Create Document */
+        post: operations["create_document"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/app/tenants/{tenant_id}/documents/{document_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Document */
+        get: operations["get_document"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Document */
+        patch: operations["update_document"];
+        trace?: never;
+    };
+    "/api/v1/app/tenants/{tenant_id}/documents/{document_id}/trash": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Trash Document */
+        post: operations["trash_document"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/app/tenants/{tenant_id}/documents/{document_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore Document */
+        post: operations["restore_document"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/app/tenants/{tenant_id}/documents/{document_id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Document Versions */
+        get: operations["list_document_versions"];
+        put?: never;
+        /** Create Document Version */
+        post: operations["create_document_version"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/app/tenants/{tenant_id}/documents/{document_id}/versions/{version_id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Version File Url */
+        get: operations["get_version_file_url"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -336,6 +458,177 @@ export interface components {
          * @enum {string}
          */
         DocType: "operating_manual" | "installation_manual" | "maintenance_manual" | "safety_instruction" | "datasheet" | "spare_parts_list" | "wiring_diagram" | "declaration_of_conformity" | "certificate" | "test_report" | "training_material" | "other";
+        /**
+         * DocumentCreate
+         * @description Missing `doc_type` / `language` / `access_level` come from the folder defaults (BUSINESS_RULES §3).
+         */
+        DocumentCreate: {
+            /**
+             * Upload Id
+             * Format: uuid
+             */
+            upload_id: string;
+            /**
+             * Folder Id
+             * Format: uuid
+             */
+            folder_id: string;
+            /** Title */
+            title: string;
+            doc_type?: components["schemas"]["DocType"] | null;
+            /** Language */
+            language?: string | null;
+            access_level?: components["schemas"]["AccessLevel"] | null;
+            /** Machine Id */
+            machine_id?: string | null;
+        };
+        /** DocumentListItem */
+        DocumentListItem: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: string;
+            doc_type: components["schemas"]["DocType"];
+            /** Language */
+            language: string;
+            access_level: components["schemas"]["AccessLevel"];
+            /**
+             * Folder Id
+             * Format: uuid
+             */
+            folder_id: string;
+            /** Folder Path */
+            folder_path: string;
+            /** Current Version No */
+            current_version_no: number | null;
+            processing_status: components["schemas"]["ProcessingStatus"] | null;
+            /**
+             * Group Id
+             * Format: uuid
+             */
+            group_id: string;
+            /** Machine Id */
+            machine_id: string | null;
+            /** Trashed At */
+            trashed_at: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** DocumentRead */
+        DocumentRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: string;
+            doc_type: components["schemas"]["DocType"];
+            /** Language */
+            language: string;
+            access_level: components["schemas"]["AccessLevel"];
+            /**
+             * Folder Id
+             * Format: uuid
+             */
+            folder_id: string;
+            /** Folder Path */
+            folder_path: string;
+            /** Current Version No */
+            current_version_no: number | null;
+            processing_status: components["schemas"]["ProcessingStatus"] | null;
+            /**
+             * Group Id
+             * Format: uuid
+             */
+            group_id: string;
+            /** Machine Id */
+            machine_id: string | null;
+            /** Trashed At */
+            trashed_at: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Versions Count */
+            versions_count: number;
+            /** Language Variants */
+            language_variants: components["schemas"]["LanguageVariantRead"][];
+            /** Released In Count */
+            released_in_count: number;
+            /** Duplicate Of Document Id */
+            duplicate_of_document_id?: string | null;
+        };
+        /**
+         * DocumentUpdate
+         * @description A field left out stays as it is; `null` is a 422 except for `machine_id`.
+         */
+        DocumentUpdate: {
+            /** Title */
+            title?: string | null;
+            /** Folder Id */
+            folder_id?: string | null;
+            doc_type?: components["schemas"]["DocType"] | null;
+            /** Language */
+            language?: string | null;
+            access_level?: components["schemas"]["AccessLevel"] | null;
+            /** Machine Id */
+            machine_id?: string | null;
+        };
+        /** DocumentVersionCreate */
+        DocumentVersionCreate: {
+            /**
+             * Upload Id
+             * Format: uuid
+             */
+            upload_id: string;
+        };
+        /** DocumentVersionRead */
+        DocumentVersionRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /** Version No */
+            version_no: number;
+            /** File Name */
+            file_name: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Sha256 Hex */
+            sha256_hex: string;
+            /** Page Count */
+            page_count: number | null;
+            processing_status: components["schemas"]["ProcessingStatus"];
+            /** Processing Error */
+            processing_error: string | null;
+            /** Processed At */
+            processed_at: string | null;
+            /** Is Current */
+            is_current: boolean;
+            /** Created By */
+            created_by: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Duplicate Of Document Id */
+            duplicate_of_document_id?: string | null;
+        };
         /** FolderCreate */
         FolderCreate: {
             /**
@@ -437,6 +730,18 @@ export interface components {
             /** Has Account */
             has_account: boolean;
         };
+        /** LanguageVariantRead */
+        LanguageVariantRead: {
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /** Language */
+            language: string;
+            /** Title */
+            title: string;
+        };
         /** LoginRequest */
         LoginRequest: {
             /** Email */
@@ -479,6 +784,20 @@ export interface components {
          * @enum {string}
          */
         OperatorRole: "admin" | "member";
+        /** Page[DocumentListItem] */
+        Page_DocumentListItem_: {
+            /** Items */
+            items: components["schemas"]["DocumentListItem"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** Page[DocumentVersionRead] */
+        Page_DocumentVersionRead_: {
+            /** Items */
+            items: components["schemas"]["DocumentVersionRead"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
         /** Page[FolderRead] */
         Page_FolderRead_: {
             /** Items */
@@ -519,6 +838,11 @@ export interface components {
             /** Email */
             email: string;
         };
+        /**
+         * ProcessingStatus
+         * @enum {string}
+         */
+        ProcessingStatus: "pending" | "processing" | "ready" | "failed";
         /** ReauthenticateRequest */
         ReauthenticateRequest: {
             /** Password */
@@ -689,6 +1013,32 @@ export interface components {
             /** Otpauth Uri */
             otpauth_uri: string;
         };
+        /** UploadCreate */
+        UploadCreate: {
+            /** File Name */
+            file_name: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Sha256 Hex */
+            sha256_hex: string;
+            /** Content Type */
+            content_type: string;
+        };
+        /** UploadRead */
+        UploadRead: {
+            /**
+             * Upload Id
+             * Format: uuid
+             */
+            upload_id: string;
+            /** Upload Url */
+            upload_url: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+        };
         /** UserRead */
         UserRead: {
             /**
@@ -718,6 +1068,16 @@ export interface components {
         VerifyTotpRequest: {
             /** Code */
             code: string;
+        };
+        /** VersionFileUrlRead */
+        VersionFileUrlRead: {
+            /** Url */
+            url: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
         };
     };
     responses: never;
@@ -1418,6 +1778,352 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FolderRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UploadCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_documents: {
+        parameters: {
+            query?: {
+                space_id?: string | null;
+                folder_id?: string | null;
+                language?: string | null;
+                access_level?: components["schemas"]["AccessLevel"] | null;
+                doc_type?: components["schemas"]["DocType"] | null;
+                processing_status?: components["schemas"]["ProcessingStatus"] | null;
+                machine_id?: string | null;
+                q?: string | null;
+                include_trashed?: boolean;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_DocumentListItem_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_document: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_document: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_document: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    trash_document: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_document: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_document_versions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_DocumentVersionRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_document_version: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentVersionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentVersionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_version_file_url: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+                version_id: string;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionFileUrlRead"];
                 };
             };
             /** @description Validation Error */

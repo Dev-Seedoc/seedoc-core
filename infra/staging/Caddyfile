@@ -1,11 +1,11 @@
 # Staging web server (ARCHITECTURE §12): automatic HTTPS (Let's Encrypt) for {$SITE_ADDRESS}, serves the SPA,
-# proxies /api. Needs the DNS A/AAAA records of the site to point at this server before a certificate can be issued.
+# proxies /api; {$FILES_ADDRESS} proxies the object store. Needs the DNS A/AAAA records of the site to point at this server before a certificate can be issued.
 {$SITE_ADDRESS} {
 	encode zstd gzip
 
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://{$FILES_ADDRESS}; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
 		X-Frame-Options "DENY"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
@@ -26,4 +26,17 @@
 		try_files {path} /index.html
 		file_server
 	}
+}
+
+# Object storage for presigned uploads/downloads (RustFS). The Host header is passed through unchanged: it is part of
+# the URL signature. CORS comes from the bucket rule (s3-init), not from Caddy.
+{$FILES_ADDRESS} {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Robots-Tag "noindex, nofollow"
+		-Server
+	}
+
+	reverse_proxy s3:9000
 }

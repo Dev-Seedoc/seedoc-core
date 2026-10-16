@@ -76,12 +76,13 @@ PIN_ENCRYPTION_KEY=$(secret)
 TOTP_ENCRYPTION_KEY=$(secret)
 IP_HASH_PEPPER=$(secret)
 
-# Hetzner Object Storage (bucket seedoc-staging, NBG1)
-S3_ENDPOINT=https://nbg1.your-objectstorage.com
-S3_REGION=nbg1
+# Object storage: RustFS in the compose stack, public at FILES_HOST through Caddy (needs DNS A/AAAA files.staging)
+FILES_HOST=files.staging.seedoc.cloud
+S3_ENDPOINT=https://files.staging.seedoc.cloud
+S3_REGION=eu-central-1
 S3_BUCKET=seedoc-staging
-S3_ACCESS_KEY=FILL_IN
-S3_SECRET_KEY=FILL_IN
+S3_ACCESS_KEY=$(openssl rand -hex 12)
+S3_SECRET_KEY=$(openssl rand -hex 24)
 
 # Resend over SMTP (ARCHITECTURE D20)
 MAIL_SMTP_HOST=smtp.resend.com

@@ -2,6 +2,7 @@
 
 import os
 import re
+import time
 from collections.abc import AsyncIterator, Iterator
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -48,6 +49,7 @@ from seedoc.security.totp import encrypt_totp_secret, new_totp_secret  # noqa: E
 
 ROLES_SQL = Path(__file__).resolve().parents[3] / "infra" / "postgres" / "init" / "01-roles.sql"
 POSTGRES_IMAGE = "pgvector/pgvector:pg16"
+S3_IMAGE = "rustfs/rustfs:latest"  # same image as infra/docker-compose.yml
 
 
 def _reset_caches() -> None:
@@ -101,6 +103,47 @@ def postgres() -> Iterator[dict[str, str]]:
         yield urls
         os.environ.update(previous)
         _reset_caches()
+
+
+@pytest.fixture(scope="session")
+def s3() -> Iterator[str]:
+    """RustFS (S3 API, the same server as `make up`) with an empty bucket; points the settings at it for the session.
+    Yields the endpoint URL."""
+    if not _docker_available():
+        pytest.skip("Docker is not running; storage tests need testcontainers")
+
+    from testcontainers.core.container import DockerContainer
+
+    from seedoc.storage.s3 import get_s3_client
+
+    container = (
+        DockerContainer(S3_IMAGE)
+        .with_env("RUSTFS_ACCESS_KEY", _TEST_ENV["S3_ACCESS_KEY"])
+        .with_env("RUSTFS_SECRET_KEY", _TEST_ENV["S3_SECRET_KEY"])
+        .with_env("RUSTFS_ADDRESS", ":9000")
+        .with_exposed_ports(9000)
+    )
+    with container:
+        endpoint = f"http://{container.get_container_host_ip()}:{container.get_exposed_port(9000)}"
+        previous = os.environ["S3_ENDPOINT"]
+        os.environ["S3_ENDPOINT"] = endpoint
+        _reset_caches()
+        get_s3_client.cache_clear()
+
+        client = get_s3_client()
+        for _ in range(60):  # the S3 port opens a moment after the container starts
+            try:
+                client.create_bucket(Bucket=_TEST_ENV["S3_BUCKET"])
+                break
+            except Exception:  # connection refused while RustFS is still starting
+                time.sleep(0.5)
+        else:
+            pytest.fail("RustFS did not start within 30 s")
+
+        yield endpoint
+        os.environ["S3_ENDPOINT"] = previous
+        _reset_caches()
+        get_s3_client.cache_clear()
 
 
 @pytest.fixture(autouse=True)
