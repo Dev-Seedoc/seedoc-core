@@ -1,10 +1,12 @@
-import { FileText, FolderTree as FolderTreeIcon, Library, Loader2, Pencil, Plus, TriangleAlert } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { FolderTree as FolderTreeIcon, Library, Pencil, Plus } from "lucide-react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
 
 import { EmptyState } from "@/components/common/EmptyState";
+import { LoadFailed } from "@/components/common/LoadFailed";
 import { NativeSelect } from "@/components/common/NativeSelect";
+import { Spinner } from "@/components/common/Spinner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useCurrentTenant } from "@/hooks/useCurrentTenant";
@@ -13,35 +15,20 @@ import type { FolderRead, SpaceRead } from "@/lib/api/types";
 
 import { FolderActions } from "./FolderActions";
 import { FolderDialog, type FolderDialogTarget } from "./FolderDialog";
+import { ColumnsMenu } from "./ColumnsMenu";
+import type { DocumentColumn } from "./documentColumns";
+import { type DocumentFilters, documentFilterParams, hasDocumentFilters, readDocumentFilters } from "./documentFilters";
+import { DocumentFiltersBar } from "./DocumentFiltersBar";
+import { DocumentsTable } from "./DocumentsTable";
 import { FolderTree } from "./FolderTree";
 import { SpaceDialog, type SpaceDialogTarget } from "./SpaceDialog";
+import { useHiddenDocumentColumns } from "./useHiddenDocumentColumns";
 
 // The selection lives in the URL (`?space_id=…&folder_id=…`, the API's query names), so reload, back and links keep it.
 const SPACE_PARAM = "space_id";
 const FOLDER_PARAM = "folder_id";
-
-function Spinner() {
-  return (
-    <div className="flex justify-center py-8">
-      <Loader2 className="text-muted-foreground size-5 animate-spin" aria-hidden="true" />
-    </div>
-  );
-}
-
-function LoadFailed({ title, onRetry }: { title: string; onRetry: () => void }) {
-  const { t } = useTranslation();
-  return (
-    <EmptyState
-      icon={TriangleAlert}
-      title={title}
-      action={
-        <Button variant="outline" onClick={onRetry}>
-          {t("common.actions.retry")}
-        </Button>
-      }
-    />
-  );
-}
+const FOLDER_SCOPE_HIDDEN_COLUMNS: DocumentColumn[] = ["folder"];
+const NO_COLUMNS: DocumentColumn[] = [];
 
 // `/documents` (NAMING §7). Left: space + folder tree (M1-B1); right: the documents of the folder (M1-B2).
 export function DocumentsPage() {
@@ -138,6 +125,44 @@ function SpaceBrowser({ tenantId, spaces, spaceActions }: SpaceBrowserProps) {
   const folders = useFolders(tenantId, space?.id);
   const folderId = searchParams.get(FOLDER_PARAM) ?? undefined;
   const selectedFolder = folders.data?.find((folder) => folder.id === folderId);
+  // Rebuilt only when the URL changes, so the search delay in DocumentFiltersBar is not restarted by other renders.
+  const filters = useMemo(() => readDocumentFilters(searchParams), [searchParams]);
+  const { hiddenColumns, setColumnVisible } = useHiddenDocumentColumns();
+  // Inside one folder every row has the same folder; that column only helps across the whole space.
+  const unavailableColumns = selectedFolder ? FOLDER_SCOPE_HIDDEN_COLUMNS : NO_COLUMNS;
+  const tableHiddenColumns = useMemo(
+    () => [...hiddenColumns, ...unavailableColumns],
+    [hiddenColumns, unavailableColumns],
+  );
+
+  // Merges `change` into the filters; `null` clears them all. React Router's setSearchParams does not queue updates
+  // (its callback gets the URL of the last render), so changes made before the next render build on
+  // `pendingParams` and never overwrite each other. Filter changes replace the history entry: Back goes to the
+  // previous folder, not to every typed letter.
+  const pendingParams = useRef<URLSearchParams | null>(null);
+  useEffect(() => {
+    pendingParams.current = null;
+  }, [searchParams]);
+  const spaceId = space?.id;
+  const changeFilters = useCallback(
+    (change: Partial<DocumentFilters> | null) => {
+      const current = pendingParams.current ?? searchParams;
+      const next = change === null ? {} : { ...readDocumentFilters(current), ...change };
+      const params = new URLSearchParams(documentFilterParams(next));
+      for (const key of [SPACE_PARAM, FOLDER_PARAM]) {
+        const value = current.get(key);
+        if (value) {
+          params.set(key, value);
+        }
+      }
+      if (spaceId && !params.has(SPACE_PARAM)) {
+        params.set(SPACE_PARAM, spaceId);
+      }
+      pendingParams.current = params;
+      setSearchParams(params, { replace: true });
+    },
+    [searchParams, setSearchParams, spaceId],
+  );
   const [dialogTarget, setDialogTarget] = useState<FolderDialogTarget | null>(null);
 
   if (!space) {
@@ -148,10 +173,15 @@ function SpaceBrowser({ tenantId, spaces, spaceActions }: SpaceBrowserProps) {
     setSearchParams({ [SPACE_PARAM]: spaceId });
   }
 
-  // `undefined` = no folder selected (e.g. after deleting a top-level folder).
+  // `undefined` = no folder selected (e.g. after deleting a top-level folder). The filters stay: "only data sheets"
+  // while browsing folders. A new space starts without them (selectSpace).
   function selectFolder(id: string | undefined) {
     if (space) {
-      setSearchParams(id ? { [SPACE_PARAM]: space.id, [FOLDER_PARAM]: id } : { [SPACE_PARAM]: space.id });
+      setSearchParams({
+        [SPACE_PARAM]: space.id,
+        ...(id ? { [FOLDER_PARAM]: id } : {}),
+        ...documentFilterParams(filters),
+      });
     }
   }
 
@@ -244,10 +274,10 @@ function SpaceBrowser({ tenantId, spaces, spaceActions }: SpaceBrowserProps) {
         {tree}
       </aside>
 
-      <section className="flex min-w-0 flex-1 flex-col gap-4" aria-live="polite">
+      <section className="flex min-w-0 flex-1 flex-col gap-4">
         <div className="flex items-center justify-between gap-4">
           <h2 className="min-w-0 truncate text-lg font-semibold">
-            {selectedFolder ? selectedFolder.path : t("documents.folders.noSelection")}
+            {selectedFolder ? selectedFolder.path : t("documents.folders.allInSpace", { space: space.name })}
           </h2>
           {selectedFolder && (
             <FolderActions
@@ -265,13 +295,31 @@ function SpaceBrowser({ tenantId, spaces, spaceActions }: SpaceBrowserProps) {
             />
           )}
         </div>
-        {/* M1-B2 replaces this with the documents table of the selected folder. Not the shared page placeholder:
-            its "Dieser Bereich …" would read as "this space" here. */}
-        <EmptyState
-          icon={FileText}
-          title={t("documents.list.comingSoonTitle")}
-          description={t("documents.list.comingSoonDescription")}
-        />
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <DocumentFiltersBar filters={filters} onChange={changeFilters} />
+          <ColumnsMenu
+            hiddenColumns={hiddenColumns}
+            unavailableColumns={unavailableColumns}
+            onChange={setColumnVisible}
+          />
+        </div>
+        {/* A folder in the URL is only known once the folder list is there: wait for it rather than load the whole
+            space first and the folder right after. */}
+        {folderId && folders.isPending ? (
+          <Spinner />
+        ) : (
+          <DocumentsTable
+            // A new table (rows, paging) per folder / space; filter changes reload it in place.
+            key={selectedFolder?.id ?? space.id}
+            tenantId={tenantId}
+            query={{ ...(selectedFolder ? { folder_id: selectedFolder.id } : { space_id: space.id }), ...filters }}
+            isFiltered={hasDocumentFilters(filters)}
+            onResetFilters={() => {
+              changeFilters(null);
+            }}
+            hiddenColumns={tableHiddenColumns}
+          />
+        )}
       </section>
 
       <FolderDialog

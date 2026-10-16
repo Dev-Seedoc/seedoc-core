@@ -28,6 +28,8 @@ export const routes: RouteObject[] = [
         element: <DocumentsPage />,
         handle: { crumb: (t) => t("shell.nav.documents") } satisfies RouteHandle,
       },
+      // DocumentDetailPage comes with M1-B4; the table already links here.
+      { path: "documents/:documentId", element: <PagePlaceholder /> },
       {
         path: "products",
         element: <PagePlaceholder />,

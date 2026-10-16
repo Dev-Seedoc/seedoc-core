@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { toast } from "sonner";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { FolderRead, MeRead, SpaceRead } from "@/lib/api/types";
+import type { DocumentListItem, FolderRead, MeRead, SpaceRead } from "@/lib/api/types";
 import { apiError, renderRoute, stubApi, TEST_ME } from "@/test/renderRoute";
 
 const TENANT_ID = "00000000-0000-4000-8000-00000000000a";
@@ -65,6 +65,7 @@ function visibleFolderNames(): string[] {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  window.localStorage.clear();
 });
 
 describe("DocumentsPage", () => {
@@ -77,7 +78,7 @@ describe("DocumentsPage", () => {
     expect(visibleFolderNames()).toEqual(["Sicherheit", "Wartung"]);
     expect(treeItem("Sicherheit")).toHaveAttribute("aria-expanded", "false");
     expect(treeItem("Wartung")).not.toHaveAttribute("aria-expanded");
-    expect(screen.getByRole("heading", { name: "Kein Ordner ausgewählt" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Alle Dokumente in „Handbücher“" })).toBeInTheDocument();
   });
 
   it("selects a folder into the URL and shows its path", async () => {
@@ -418,5 +419,235 @@ describe("DocumentsPage – spaces", () => {
     renderRoute("/documents", EDITOR_ME);
     expect(await screen.findByText(/Ein Administrator kann einen Bereich anlegen/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Bereich anlegen" })).not.toBeInTheDocument();
+  });
+});
+
+// ─────────────────────────── M1-B2: documents table + filters ───────────────────────────
+
+const DOCUMENTS_LIST = `GET /api/v1/app/tenants/${TENANT_ID}/documents`;
+
+function documentItem(id: string, title: string, overrides: Partial<DocumentListItem> = {}): DocumentListItem {
+  return {
+    id,
+    title,
+    doc_type: "datasheet",
+    language: "de",
+    access_level: "public",
+    folder_id: "wartung",
+    folder_path: "Handbücher/Wartung",
+    current_version_no: 2,
+    processing_status: "ready",
+    group_id: id,
+    machine_id: null,
+    trashed_at: null,
+    updated_at: "2026-10-16T14:05:00Z",
+    ...overrides,
+  };
+}
+
+// Folders as before; documents answer the filters they are asked for (only `q` matters for the fake).
+function stubLibraryWithDocuments(documents: DocumentListItem[]) {
+  return stubApi({
+    [SPACES]: page([HANDBUECHER]),
+    [FOLDERS]: page(FOLDERS_OF.handbuecher ?? []),
+    [DOCUMENTS_LIST]: (request) => {
+      const q = new URL(request.url).searchParams.get("q")?.toLowerCase();
+      return page(q ? documents.filter((item) => item.title.toLowerCase().includes(q)) : documents);
+    },
+  });
+}
+
+function documentRequests(fetchMock: ReturnType<typeof stubApi>): URLSearchParams[] {
+  return fetchMock.mock.calls
+    .map(([request]) => new URL(request.url))
+    .filter((url) => url.pathname.endsWith("/documents"))
+    .map((url) => url.searchParams);
+}
+
+describe("DocumentsPage – documents table", () => {
+  it("lists the space's documents with German labels and a dash for missing values", async () => {
+    stubLibraryWithDocuments([
+      documentItem("d1", "Datenblatt Pumpe", { language: "en", access_level: "customer", processing_status: "failed" }),
+      documentItem("d2", "Entwurf", { current_version_no: null, processing_status: null }),
+    ]);
+    renderRoute("/documents", TEST_ME);
+
+    const row = (await screen.findByRole("link", { name: "Datenblatt Pumpe" })).closest("tr");
+    expect(row).not.toBeNull();
+    const cells = within(row ?? document.body)
+      .getAllByRole("cell")
+      .map((cell) => cell.textContent);
+    expect(cells).toEqual([
+      "Datenblatt Pumpe",
+      "Datenblatt",
+      "Englisch",
+      "Nur Kunden",
+      "Handbücher/Wartung",
+      "V2",
+      "Fehlgeschlagen",
+      expect.stringMatching(/^16\.10\.2026, \d{2}:05$/),
+    ]);
+    expect(screen.getByRole("link", { name: "Datenblatt Pumpe" })).toHaveAttribute("href", "/documents/d1");
+    const draft = screen.getByRole("link", { name: "Entwurf" }).closest("tr");
+    expect(within(draft ?? document.body).getAllByText("—")).toHaveLength(2);
+  });
+
+  it("hides the folder column inside a folder and asks for that folder only", async () => {
+    const fetchMock = stubLibraryWithDocuments([documentItem("d1", "Wartungsplan")]);
+    renderRoute("/documents?space_id=handbuecher&folder_id=wartung", TEST_ME);
+
+    await screen.findByRole("link", { name: "Wartungsplan" });
+    expect(screen.queryByRole("columnheader", { name: "Ordner" })).not.toBeInTheDocument();
+    const [request] = documentRequests(fetchMock);
+    expect([request?.get("folder_id"), request?.has("space_id")]).toEqual(["wartung", false]);
+  });
+
+  it("loads more documents with the cursor", async () => {
+    stubApi({
+      [SPACES]: page([HANDBUECHER]),
+      [FOLDERS]: page([]),
+      [DOCUMENTS_LIST]: (request) =>
+        new URL(request.url).searchParams.get("cursor") === "c-2"
+          ? page([documentItem("d2", "Zweite Seite")])
+          : { status: 200, body: { items: [documentItem("d1", "Erste Seite")], next_cursor: "c-2" } },
+    });
+    renderRoute("/documents", TEST_ME);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Mehr laden" }));
+
+    expect(await screen.findByRole("link", { name: "Zweite Seite" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Erste Seite" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Mehr laden" })).not.toBeInTheDocument();
+  });
+});
+
+describe("DocumentsPage – filters", () => {
+  it("sends the dropdown filters to the API and keeps them in the URL", async () => {
+    const fetchMock = stubLibraryWithDocuments([documentItem("d1", "Datenblatt Pumpe")]);
+    const router = renderRoute("/documents", TEST_ME);
+    await screen.findByRole("link", { name: "Datenblatt Pumpe" });
+
+    fireEvent.change(screen.getByLabelText("Dokumenttyp"), { target: { value: "datasheet" } });
+    fireEvent.change(screen.getByLabelText("Status"), { target: { value: "failed" } });
+
+    await waitFor(() => {
+      expect(router.state.location.search).toBe("?doc_type=datasheet&processing_status=failed&space_id=handbuecher");
+    });
+    await waitFor(() => {
+      const last = documentRequests(fetchMock).at(-1);
+      expect([last?.get("doc_type"), last?.get("processing_status"), last?.get("space_id")]).toEqual([
+        "datasheet",
+        "failed",
+        "handbuecher",
+      ]);
+    });
+  });
+
+  it("searches after a pause in typing, not per key stroke", async () => {
+    const fetchMock = stubLibraryWithDocuments([
+      documentItem("d1", "Datenblatt Pumpe"),
+      documentItem("d2", "Schaltplan"),
+    ]);
+    const router = renderRoute("/documents", TEST_ME);
+    await screen.findByRole("link", { name: "Schaltplan" });
+    const search = screen.getByLabelText("Titel suchen");
+
+    fireEvent.change(search, { target: { value: "Pu" } });
+    fireEvent.change(search, { target: { value: "Pumpe " } });
+
+    await waitFor(() => {
+      expect(router.state.location.search).toBe("?q=Pumpe&space_id=handbuecher");
+    });
+    // The trailing space typed last stays in the field, although the URL holds the trimmed search.
+    expect(search).toHaveValue("Pumpe ");
+    await waitFor(() => {
+      expect(screen.queryByRole("link", { name: "Schaltplan" })).not.toBeInTheDocument();
+    });
+    expect(documentRequests(fetchMock).map((params) => params.get("q"))).toEqual([null, "Pumpe"]);
+  });
+
+  it("keeps the filters when another folder is chosen", async () => {
+    stubLibraryWithDocuments([]);
+    const router = renderRoute("/documents?space_id=handbuecher&doc_type=datasheet", TEST_ME);
+
+    fireEvent.click(await screen.findByText("Wartung"));
+
+    await waitFor(() => {
+      expect(router.state.location.search).toBe("?space_id=handbuecher&folder_id=wartung&doc_type=datasheet");
+    });
+  });
+
+  it("explains that nothing matches and resets the filters", async () => {
+    stubLibraryWithDocuments([documentItem("d1", "Schaltplan")]);
+    const router = renderRoute("/documents?space_id=handbuecher&q=nichts", TEST_ME);
+
+    const empty = await screen.findByRole("heading", { name: "Keine Dokumente gefunden" });
+    fireEvent.click(within(empty.parentElement ?? document.body).getByRole("button", { name: "Filter zurücksetzen" }));
+
+    expect(await screen.findByRole("link", { name: "Schaltplan" })).toBeInTheDocument();
+    expect(router.state.location.search).toBe("?space_id=handbuecher");
+    expect(screen.getByLabelText("Titel suchen")).toHaveValue("");
+  });
+});
+
+describe("DocumentsPage – columns", () => {
+  const STORAGE_KEY = "seedoc.documentsTable.hiddenColumns";
+
+  function columnHeaders(): string[] {
+    return screen.getAllByRole("columnheader").map((header) => header.textContent);
+  }
+
+  async function openColumnsMenu() {
+    fireEvent.keyDown(screen.getByRole("button", { name: "Spalten" }), { key: "Enter" });
+    return screen.findByRole("menu");
+  }
+
+  it("hides columns from the menu and remembers them in this browser", async () => {
+    stubLibraryWithDocuments([documentItem("d1", "Datenblatt Pumpe")]);
+    renderRoute("/documents", TEST_ME);
+    await screen.findByRole("link", { name: "Datenblatt Pumpe" });
+
+    const menu = await openColumnsMenu();
+    expect(within(menu).queryByRole("menuitemcheckbox", { name: "Titel" })).not.toBeInTheDocument();
+    fireEvent.click(within(menu).getByRole("menuitemcheckbox", { name: "Sprache" }));
+    fireEvent.click(within(menu).getByRole("menuitemcheckbox", { name: "Geändert" }));
+    // The menu stays open for more changes; while it is open, the page behind it is hidden from screen readers.
+    expect(menu).toBeInTheDocument();
+    fireEvent.keyDown(menu, { key: "Escape" });
+    await waitFor(() => {
+      expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    });
+
+    expect(columnHeaders()).toEqual(["Titel", "Dokumenttyp", "Sichtbarkeit", "Ordner", "Version", "Status"]);
+    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "null")).toEqual(["language", "updatedAt"]);
+  });
+
+  it("starts with the remembered columns and ignores unknown stored values", async () => {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(["status", "title", "nonsense"]));
+    stubLibraryWithDocuments([documentItem("d1", "Datenblatt Pumpe")]);
+    renderRoute("/documents", TEST_ME);
+
+    await screen.findByRole("link", { name: "Datenblatt Pumpe" });
+    // "title" can never be hidden, "nonsense" is no column: only "status" is.
+    expect(columnHeaders()).toEqual([
+      "Titel",
+      "Dokumenttyp",
+      "Sprache",
+      "Sichtbarkeit",
+      "Ordner",
+      "Version",
+      "Geändert",
+    ]);
+  });
+
+  it("does not offer the folder column inside a folder", async () => {
+    stubLibraryWithDocuments([documentItem("d1", "Wartungsplan")]);
+    renderRoute("/documents?space_id=handbuecher&folder_id=wartung", TEST_ME);
+    await screen.findByRole("link", { name: "Wartungsplan" });
+
+    const menu = await openColumnsMenu();
+
+    expect(within(menu).queryByRole("menuitemcheckbox", { name: "Ordner" })).not.toBeInTheDocument();
+    expect(within(menu).getByRole("menuitemcheckbox", { name: "Sprache" })).toHaveAttribute("aria-checked", "true");
   });
 });

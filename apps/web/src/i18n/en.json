@@ -141,12 +141,8 @@
       "emptyTitle": "No folders yet",
       "emptyDescription": "This space has no folders yet.",
       "loadFailed": "The folders could not be loaded.",
-      "noSelection": "No folder selected",
-      "create": "Create folder"
-    },
-    "list": {
-      "comingSoonTitle": "Document list coming soon",
-      "comingSoonDescription": "The documents of the selected folder will be shown here soon."
+      "create": "Create folder",
+      "allInSpace": "All documents in “{{space}}”"
     },
     "folderDialog": {
       "createTitle": "Create folder",
@@ -183,6 +179,40 @@
       "submitCreate": "Create",
       "created": "Space created.",
       "renamed": "Space renamed."
+    },
+    "table": {
+      "title": "Title",
+      "docType": "Document type",
+      "language": "Language",
+      "accessLevel": "Visibility",
+      "folder": "Folder",
+      "version": "Version",
+      "versionNo": "V{{no}}",
+      "status": "Status",
+      "updatedAt": "Updated",
+      "loadMore": "Load more",
+      "loadFailed": "The documents could not be loaded.",
+      "emptyTitle": "No documents yet",
+      "emptyDescription": "Uploaded documents appear here.",
+      "noMatchesTitle": "No documents found",
+      "noMatchesDescription": "No document matches the selected filters."
+    },
+    "filters": {
+      "label": "Filter documents",
+      "search": "Search titles",
+      "docType": "Document type",
+      "allDocTypes": "All document types",
+      "language": "Language",
+      "allLanguages": "All languages",
+      "accessLevel": "Visibility",
+      "allAccessLevels": "Any visibility",
+      "status": "Status",
+      "allStatuses": "Any status",
+      "reset": "Reset filters"
+    },
+    "columns": {
+      "label": "Columns",
+      "title": "Visible columns"
     }
   },
   "auth": {

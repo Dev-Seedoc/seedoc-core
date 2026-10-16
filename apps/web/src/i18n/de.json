@@ -141,12 +141,8 @@
       "emptyTitle": "Noch keine Ordner",
       "emptyDescription": "In diesem Bereich gibt es noch keine Ordner.",
       "loadFailed": "Die Ordner konnten nicht geladen werden.",
-      "noSelection": "Kein Ordner ausgewählt",
-      "create": "Ordner anlegen"
-    },
-    "list": {
-      "comingSoonTitle": "Dokumentenliste folgt",
-      "comingSoonDescription": "Hier sehen Sie bald die Dokumente des ausgewählten Ordners."
+      "create": "Ordner anlegen",
+      "allInSpace": "Alle Dokumente in „{{space}}“"
     },
     "folderDialog": {
       "createTitle": "Ordner anlegen",
@@ -183,6 +179,40 @@
       "submitCreate": "Anlegen",
       "created": "Bereich angelegt.",
       "renamed": "Bereich umbenannt."
+    },
+    "table": {
+      "title": "Titel",
+      "docType": "Dokumenttyp",
+      "language": "Sprache",
+      "accessLevel": "Sichtbarkeit",
+      "folder": "Ordner",
+      "version": "Version",
+      "versionNo": "V{{no}}",
+      "status": "Status",
+      "updatedAt": "Geändert",
+      "loadMore": "Mehr laden",
+      "loadFailed": "Die Dokumente konnten nicht geladen werden.",
+      "emptyTitle": "Noch keine Dokumente",
+      "emptyDescription": "Hochgeladene Dokumente erscheinen hier.",
+      "noMatchesTitle": "Keine Dokumente gefunden",
+      "noMatchesDescription": "Kein Dokument passt zu den gewählten Filtern."
+    },
+    "filters": {
+      "label": "Dokumente filtern",
+      "search": "Titel suchen",
+      "docType": "Dokumenttyp",
+      "allDocTypes": "Alle Dokumenttypen",
+      "language": "Sprache",
+      "allLanguages": "Alle Sprachen",
+      "accessLevel": "Sichtbarkeit",
+      "allAccessLevels": "Jede Sichtbarkeit",
+      "status": "Status",
+      "allStatuses": "Jeder Status",
+      "reset": "Filter zurücksetzen"
+    },
+    "columns": {
+      "label": "Spalten",
+      "title": "Angezeigte Spalten"
     }
   },
   "auth": {

@@ -1,3 +1,5 @@
+import type { ListDocumentsQuery } from "./types";
+
 // Query key factory (NAMING §6): queryKeys.<area>.<name>(...). Tenant-scoped areas start with
 // ["tenants", tenantId, ...] so invalidating ["tenants", tenantId] refreshes everything of one tenant.
 export const queryKeys = {
@@ -12,6 +14,9 @@ export const queryKeys = {
     // Every space's folder list; a folder change invalidates this prefix.
     allFolders: (tenantId: string) => ["tenants", tenantId, "folders"] as const,
     folders: (tenantId: string, spaceId: string) => ["tenants", tenantId, "folders", spaceId] as const,
+    // Every document list; trash/restore (and later uploads) invalidate this prefix.
+    allDocuments: (tenantId: string) => ["tenants", tenantId, "documents"] as const,
+    documents: (tenantId: string, query: ListDocumentsQuery) => ["tenants", tenantId, "documents", query] as const,
   },
   // Staff data is not tenant-scoped (admin DB engine); logout drops it like every non-auth query.
   staff: {

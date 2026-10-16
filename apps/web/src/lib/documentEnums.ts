@@ -1,7 +1,8 @@
-import type { AccessLevel, DocType } from "@/lib/api/types";
+import type { AccessLevel, DocType, ProcessingStatus } from "@/lib/api/types";
 
 // Every value of the generated enum types, in display order. Written as `Record<…, true>` so the compiler fails here
-// when the API adds a value that a dropdown would otherwise miss. Labels: `common.accessLevel.*`, `common.docType.*`.
+// when the API adds a value that a dropdown would otherwise miss. Labels: `common.accessLevel.*`, `common.docType.*`,
+// `common.status.*`.
 const ACCESS_LEVEL_KEYS = { public: true, customer: true, internal: true } satisfies Record<AccessLevel, true>;
 
 const DOC_TYPE_KEYS = {
@@ -19,5 +20,11 @@ const DOC_TYPE_KEYS = {
   other: true,
 } satisfies Record<DocType, true>;
 
+const PROCESSING_STATUS_KEYS = { pending: true, processing: true, ready: true, failed: true } satisfies Record<
+  ProcessingStatus,
+  true
+>;
+
 export const ACCESS_LEVELS = Object.keys(ACCESS_LEVEL_KEYS) as AccessLevel[];
 export const DOC_TYPES = Object.keys(DOC_TYPE_KEYS) as DocType[];
+export const PROCESSING_STATUSES = Object.keys(PROCESSING_STATUS_KEYS) as ProcessingStatus[];

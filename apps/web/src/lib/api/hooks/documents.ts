@@ -1,18 +1,21 @@
-// TanStack Query hooks for the document library: spaces and folders (docs/API.md §3.2), more with M1-B2.
+// TanStack Query hooks for the document library: spaces and folders (API.md §3.2), documents (§3.3).
 // Names from the "Frontend fn / hook" column. Every hook takes the tenant id from `useCurrentTenant()`.
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   createFolder,
   createSpace,
   deleteFolder,
+  listDocuments,
   listFolders,
   listSpaces,
+  restoreDocument,
+  trashDocument,
   updateFolder,
   updateSpace,
 } from "../endpoints";
 import { queryKeys } from "../queryKeys";
-import type { FolderCreate, FolderUpdate, SpaceCreate, SpaceUpdate } from "../types";
+import type { FolderCreate, FolderUpdate, ListDocumentsQuery, SpaceCreate, SpaceUpdate } from "../types";
 
 // The whole list in one page (`next_cursor` is always null for spaces and folders).
 export function useSpaces(tenantId: string) {
@@ -89,5 +92,43 @@ export function useDeleteFolder(tenantId: string) {
     mutationFn: (folderId: string) => deleteFolder(tenantId, folderId),
     meta: { errorToast: false },
     onSuccess: invalidateFolders,
+  });
+}
+
+// Documents (API.md §3.3). The list is paged by `next_cursor`; `fetchNextPage()` loads more ("Mehr laden"). `query`
+// holds the filters without `cursor`; every filter combination is its own cache entry.
+export function useDocuments(tenantId: string, query: Omit<ListDocumentsQuery, "cursor">) {
+  return useInfiniteQuery({
+    queryKey: queryKeys.tenants.documents(tenantId, query),
+    queryFn: ({ pageParam }) => listDocuments(tenantId, { ...query, cursor: pageParam }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
+    // DocumentsTable shows load errors with a retry button.
+    meta: { errorToast: false },
+  });
+}
+
+// Trash and restore change which list a document belongs to: reload every document list. Bulk actions call
+// `mutateAsync` per document and report the results themselves, so the global toast is off.
+function useInvalidateDocuments(tenantId: string) {
+  const queryClient = useQueryClient();
+  return () => queryClient.invalidateQueries({ queryKey: queryKeys.tenants.allDocuments(tenantId) });
+}
+
+export function useTrashDocument(tenantId: string) {
+  const invalidateDocuments = useInvalidateDocuments(tenantId);
+  return useMutation({
+    mutationFn: (documentId: string) => trashDocument(tenantId, documentId),
+    meta: { errorToast: false },
+    onSettled: invalidateDocuments,
+  });
+}
+
+export function useRestoreDocument(tenantId: string) {
+  const invalidateDocuments = useInvalidateDocuments(tenantId);
+  return useMutation({
+    mutationFn: (documentId: string) => restoreDocument(tenantId, documentId),
+    meta: { errorToast: false },
+    onSettled: invalidateDocuments,
   });
 }
