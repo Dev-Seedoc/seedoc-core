@@ -261,7 +261,9 @@ describe("DocumentsPage – changing folders", () => {
       default_language: "de",
     });
     expect(success).toHaveBeenCalledWith("Ordner angelegt.");
-    expect(await screen.findByRole("treeitem", { name: "Betrieb" })).toHaveAttribute("aria-selected", "true");
+    // The router changes the URL first and re-renders a moment later (CI is slower): wait for what the user sees.
+    expect(await screen.findByRole("heading", { name: "Betrieb" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Betrieb" })).toHaveAttribute("aria-selected", "true");
   });
 
   it("shows a taken name under the field and keeps the dialog open", async () => {
@@ -330,6 +332,7 @@ describe("DocumentsPage – changing folders", () => {
     await waitFor(() => {
       expect(router.state.location.search).toBe("?space_id=handbuecher&folder_id=hinweise");
     });
+    expect(await screen.findByRole("heading", { name: "Sicherheit/Hinweise" })).toBeInTheDocument();
     expect(screen.queryByRole("treeitem", { name: "Laser" })).not.toBeInTheDocument();
   });
 
@@ -373,7 +376,10 @@ describe("DocumentsPage – spaces", () => {
       expect(router.state.location.search).toBe("?space_id=zertifikate");
     });
     expect(await lastRequest(fetchMock, "POST")?.json()).toEqual({ name: "Zertifikate" });
-    expect(await screen.findByLabelText("Bereich")).toHaveValue("zertifikate");
+    // The new space has no folders yet, so wait for the space choice itself to show it.
+    await waitFor(() => {
+      expect(screen.getByLabelText("Bereich")).toHaveValue("zertifikate");
+    });
   });
 
   it("renames the current space", async () => {
