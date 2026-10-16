@@ -131,7 +131,10 @@
       "label": "Space",
       "emptyTitle": "No spaces yet",
       "emptyDescription": "Spaces organise your documentation, e.g. by product line. An administrator can create a space.",
-      "loadFailed": "The spaces could not be loaded."
+      "loadFailed": "The spaces could not be loaded.",
+      "create": "Create space",
+      "rename": "Rename space",
+      "emptyDescriptionAdmin": "Spaces organise your documentation, e.g. by product line. Create the first space."
     },
     "folders": {
       "treeLabel": "Folders in {{space}}",
@@ -169,6 +172,17 @@
       "deleteDescription": "The folder is deleted permanently. This is only possible if it has no subfolders and no documents, including documents in the trash.",
       "deleted": "Folder deleted.",
       "notEmpty": "The folder is not empty. First remove its subfolders and documents, including those in the trash."
+    },
+    "spaceDialog": {
+      "createTitle": "Create space",
+      "renameTitle": "Rename space",
+      "description": "A space groups folders, e.g. all documents of one product line.",
+      "name": "Name",
+      "nameRequired": "Please enter a name.",
+      "nameTooLong": "The name may be at most 200 characters long.",
+      "submitCreate": "Create",
+      "created": "Space created.",
+      "renamed": "Space renamed."
     }
   },
   "auth": {

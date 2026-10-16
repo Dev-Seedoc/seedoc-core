@@ -1,4 +1,4 @@
-import { FileText, FolderTree as FolderTreeIcon, Library, Loader2, Plus, TriangleAlert } from "lucide-react";
+import { FileText, FolderTree as FolderTreeIcon, Library, Loader2, Pencil, Plus, TriangleAlert } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
@@ -14,6 +14,7 @@ import type { FolderRead, SpaceRead } from "@/lib/api/types";
 import { FolderActions } from "./FolderActions";
 import { FolderDialog, type FolderDialogTarget } from "./FolderDialog";
 import { FolderTree } from "./FolderTree";
+import { SpaceDialog, type SpaceDialogTarget } from "./SpaceDialog";
 
 // The selection lives in the URL (`?space_id=…&folder_id=…`, the API's query names), so reload, back and links keep it.
 const SPACE_PARAM = "space_id";
@@ -46,12 +47,36 @@ function LoadFailed({ title, onRetry }: { title: string; onRetry: () => void }) 
 export function DocumentsPage() {
   const { currentTenant } = useCurrentTenant();
   // AppLayout renders pages only for users with a tenant.
-  return currentTenant ? <DocumentsWorkspace tenantId={currentTenant.tenant_id} /> : null;
+  return currentTenant ? (
+    <DocumentsWorkspace
+      tenantId={currentTenant.tenant_id}
+      // BUSINESS_RULES §1: spaces are created and renamed by admins and owners; the API answers 403 to editors.
+      canManageSpaces={currentTenant.role !== "editor"}
+    />
+  ) : null;
 }
 
-function DocumentsWorkspace({ tenantId }: { tenantId: string }) {
+// Space actions for admins/owners; `undefined` hides them (editors).
+interface SpaceActions {
+  onCreate: () => void;
+  onRename: (space: SpaceRead) => void;
+}
+
+function DocumentsWorkspace({ tenantId, canManageSpaces }: { tenantId: string; canManageSpaces: boolean }) {
   const { t } = useTranslation();
   const spaces = useSpaces(tenantId);
+  const [, setSearchParams] = useSearchParams();
+  const [spaceDialogTarget, setSpaceDialogTarget] = useState<SpaceDialogTarget | null>(null);
+  const spaceActions: SpaceActions | undefined = canManageSpaces
+    ? {
+        onCreate: () => {
+          setSpaceDialogTarget({ kind: "create" });
+        },
+        onRename: (space) => {
+          setSpaceDialogTarget({ kind: "rename", space });
+        },
+      }
+    : undefined;
 
   let content: ReactNode;
   if (spaces.isPending) {
@@ -63,22 +88,49 @@ function DocumentsWorkspace({ tenantId }: { tenantId: string }) {
       <EmptyState
         icon={Library}
         title={t("documents.spaces.emptyTitle")}
-        description={t("documents.spaces.emptyDescription")}
+        description={
+          spaceActions ? t("documents.spaces.emptyDescriptionAdmin") : t("documents.spaces.emptyDescription")
+        }
+        action={
+          spaceActions && (
+            <Button onClick={spaceActions.onCreate}>
+              <Plus aria-hidden="true" />
+              {t("documents.spaces.create")}
+            </Button>
+          )
+        }
       />
     );
   } else {
-    content = <SpaceBrowser tenantId={tenantId} spaces={spaces.data} />;
+    content = <SpaceBrowser tenantId={tenantId} spaces={spaces.data} spaceActions={spaceActions} />;
   }
 
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold tracking-tight">{t("documents.page.title")}</h1>
       {content}
+      <SpaceDialog
+        tenantId={tenantId}
+        target={spaceDialogTarget}
+        onClose={() => {
+          setSpaceDialogTarget(null);
+        }}
+        onSaved={(space) => {
+          // A new space opens right away; a renamed one stays selected.
+          setSearchParams({ [SPACE_PARAM]: space.id });
+        }}
+      />
     </div>
   );
 }
 
-function SpaceBrowser({ tenantId, spaces }: { tenantId: string; spaces: SpaceRead[] }) {
+interface SpaceBrowserProps {
+  tenantId: string;
+  spaces: SpaceRead[];
+  spaceActions: SpaceActions | undefined;
+}
+
+function SpaceBrowser({ tenantId, spaces, spaceActions }: SpaceBrowserProps) {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   // An unknown or missing space in the URL falls back to the first space (sorted by name by the API).
@@ -169,6 +221,24 @@ function SpaceBrowser({ tenantId, spaces }: { tenantId: string; spaces: SpaceRea
             <span className="text-muted-foreground">{t("documents.spaces.label")}: </span>
             <span className="font-medium">{space.name}</span>
           </p>
+        )}
+        {spaceActions && (
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                spaceActions.onRename(space);
+              }}
+            >
+              <Pencil aria-hidden="true" />
+              {t("documents.spaces.rename")}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={spaceActions.onCreate}>
+              <Plus aria-hidden="true" />
+              {t("documents.spaces.create")}
+            </Button>
+          </div>
         )}
         {folders.data && folders.data.length > 0 && <div>{createFolderButton}</div>}
         {tree}

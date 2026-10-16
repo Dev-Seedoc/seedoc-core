@@ -131,7 +131,10 @@
       "label": "Bereich",
       "emptyTitle": "Noch keine Bereiche",
       "emptyDescription": "Bereiche gliedern Ihre Dokumentation, z. B. nach Produktlinie. Ein Administrator kann einen Bereich anlegen.",
-      "loadFailed": "Die Bereiche konnten nicht geladen werden."
+      "loadFailed": "Die Bereiche konnten nicht geladen werden.",
+      "create": "Bereich anlegen",
+      "rename": "Bereich umbenennen",
+      "emptyDescriptionAdmin": "Bereiche gliedern Ihre Dokumentation, z. B. nach Produktlinie. Legen Sie den ersten Bereich an."
     },
     "folders": {
       "treeLabel": "Ordner in {{space}}",
@@ -169,6 +172,17 @@
       "deleteDescription": "Der Ordner wird endgültig gelöscht. Das ist nur möglich, wenn er keine Unterordner und keine Dokumente enthält – auch keine im Papierkorb.",
       "deleted": "Ordner gelöscht.",
       "notEmpty": "Der Ordner ist nicht leer. Entfernen Sie zuerst seine Unterordner und Dokumente – auch die im Papierkorb."
+    },
+    "spaceDialog": {
+      "createTitle": "Bereich anlegen",
+      "renameTitle": "Bereich umbenennen",
+      "description": "Ein Bereich fasst Ordner zusammen, z. B. alle Unterlagen einer Produktlinie.",
+      "name": "Name",
+      "nameRequired": "Bitte geben Sie einen Namen ein.",
+      "nameTooLong": "Der Name darf höchstens 200 Zeichen lang sein.",
+      "submitCreate": "Anlegen",
+      "created": "Bereich angelegt.",
+      "renamed": "Bereich umbenannt."
     }
   },
   "auth": {
