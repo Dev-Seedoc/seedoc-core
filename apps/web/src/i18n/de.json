@@ -138,11 +138,37 @@
       "emptyTitle": "Noch keine Ordner",
       "emptyDescription": "In diesem Bereich gibt es noch keine Ordner.",
       "loadFailed": "Die Ordner konnten nicht geladen werden.",
-      "noSelection": "Kein Ordner ausgewählt"
+      "noSelection": "Kein Ordner ausgewählt",
+      "create": "Ordner anlegen"
     },
     "list": {
       "comingSoonTitle": "Dokumentenliste folgt",
       "comingSoonDescription": "Hier sehen Sie bald die Dokumente des ausgewählten Ordners."
+    },
+    "folderDialog": {
+      "createTitle": "Ordner anlegen",
+      "createSubfolderTitle": "Unterordner in „{{parent}}“ anlegen",
+      "editTitle": "Ordner bearbeiten",
+      "description": "Die Vorgaben werden neuen Dokumenten in diesem Ordner vorgeschlagen. Bestehende Dokumente ändern sich dadurch nicht.",
+      "name": "Name",
+      "accessLevel": "Sichtbarkeit (Vorgabe)",
+      "docType": "Dokumenttyp (Vorgabe)",
+      "language": "Sprache (Vorgabe)",
+      "noDefault": "Keine Vorgabe",
+      "nameRequired": "Bitte geben Sie einen Namen ein.",
+      "nameTooLong": "Der Name darf höchstens 200 Zeichen lang sein.",
+      "nameTaken": "Ein Ordner mit diesem Namen existiert hier bereits.",
+      "submitCreate": "Anlegen",
+      "created": "Ordner angelegt.",
+      "saved": "Ordner gespeichert."
+    },
+    "folderActions": {
+      "label": "Ordner-Aktionen",
+      "createSubfolder": "Unterordner anlegen",
+      "deleteTitle": "Ordner „{{name}}“ löschen?",
+      "deleteDescription": "Der Ordner wird endgültig gelöscht. Das ist nur möglich, wenn er keine Unterordner und keine Dokumente enthält – auch keine im Papierkorb.",
+      "deleted": "Ordner gelöscht.",
+      "notEmpty": "Der Ordner ist nicht leer. Entfernen Sie zuerst seine Unterordner und Dokumente – auch die im Papierkorb."
     }
   },
   "auth": {

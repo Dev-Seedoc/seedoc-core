@@ -138,11 +138,37 @@
       "emptyTitle": "No folders yet",
       "emptyDescription": "This space has no folders yet.",
       "loadFailed": "The folders could not be loaded.",
-      "noSelection": "No folder selected"
+      "noSelection": "No folder selected",
+      "create": "Create folder"
     },
     "list": {
       "comingSoonTitle": "Document list coming soon",
       "comingSoonDescription": "The documents of the selected folder will be shown here soon."
+    },
+    "folderDialog": {
+      "createTitle": "Create folder",
+      "createSubfolderTitle": "Create subfolder in “{{parent}}”",
+      "editTitle": "Edit folder",
+      "description": "The defaults are suggested for new documents in this folder. Existing documents do not change.",
+      "name": "Name",
+      "accessLevel": "Visibility (default)",
+      "docType": "Document type (default)",
+      "language": "Language (default)",
+      "noDefault": "No default",
+      "nameRequired": "Please enter a name.",
+      "nameTooLong": "The name may be at most 200 characters long.",
+      "nameTaken": "A folder with this name already exists here.",
+      "submitCreate": "Create",
+      "created": "Folder created.",
+      "saved": "Folder saved."
+    },
+    "folderActions": {
+      "label": "Folder actions",
+      "createSubfolder": "Create subfolder",
+      "deleteTitle": "Delete folder “{{name}}”?",
+      "deleteDescription": "The folder is deleted permanently. This is only possible if it has no subfolders and no documents, including documents in the trash.",
+      "deleted": "Folder deleted.",
+      "notEmpty": "The folder is not empty. First remove its subfolders and documents, including those in the trash."
     }
   },
   "auth": {

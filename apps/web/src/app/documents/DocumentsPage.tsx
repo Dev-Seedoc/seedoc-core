@@ -1,5 +1,5 @@
-import { FileText, FolderTree as FolderTreeIcon, Library, Loader2, TriangleAlert } from "lucide-react";
-import type { ReactNode } from "react";
+import { FileText, FolderTree as FolderTreeIcon, Library, Loader2, Plus, TriangleAlert } from "lucide-react";
+import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
 
@@ -9,8 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useCurrentTenant } from "@/hooks/useCurrentTenant";
 import { useFolders, useSpaces } from "@/lib/api/hooks/documents";
-import type { SpaceRead } from "@/lib/api/types";
+import type { FolderRead, SpaceRead } from "@/lib/api/types";
 
+import { FolderActions } from "./FolderActions";
+import { FolderDialog, type FolderDialogTarget } from "./FolderDialog";
 import { FolderTree } from "./FolderTree";
 
 // The selection lives in the URL (`?space_id=…&folder_id=…`, the API's query names), so reload, back and links keep it.
@@ -84,6 +86,7 @@ function SpaceBrowser({ tenantId, spaces }: { tenantId: string; spaces: SpaceRea
   const folders = useFolders(tenantId, space?.id);
   const folderId = searchParams.get(FOLDER_PARAM) ?? undefined;
   const selectedFolder = folders.data?.find((folder) => folder.id === folderId);
+  const [dialogTarget, setDialogTarget] = useState<FolderDialogTarget | null>(null);
 
   if (!space) {
     return null;
@@ -93,11 +96,25 @@ function SpaceBrowser({ tenantId, spaces }: { tenantId: string; spaces: SpaceRea
     setSearchParams({ [SPACE_PARAM]: spaceId });
   }
 
-  function selectFolder(id: string) {
+  // `undefined` = no folder selected (e.g. after deleting a top-level folder).
+  function selectFolder(id: string | undefined) {
     if (space) {
-      setSearchParams({ [SPACE_PARAM]: space.id, [FOLDER_PARAM]: id });
+      setSearchParams(id ? { [SPACE_PARAM]: space.id, [FOLDER_PARAM]: id } : { [SPACE_PARAM]: space.id });
     }
   }
+
+  const createFolderButton = (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => {
+        setDialogTarget({ kind: "create", parent: null });
+      }}
+    >
+      <Plus aria-hidden="true" />
+      {t("documents.folders.create")}
+    </Button>
+  );
 
   let tree: ReactNode;
   if (folders.isPending) {
@@ -110,6 +127,7 @@ function SpaceBrowser({ tenantId, spaces }: { tenantId: string; spaces: SpaceRea
         icon={FolderTreeIcon}
         title={t("documents.folders.emptyTitle")}
         description={t("documents.folders.emptyDescription")}
+        action={createFolderButton}
         className="py-8"
       />
     );
@@ -152,13 +170,31 @@ function SpaceBrowser({ tenantId, spaces }: { tenantId: string; spaces: SpaceRea
             <span className="font-medium">{space.name}</span>
           </p>
         )}
+        {folders.data && folders.data.length > 0 && <div>{createFolderButton}</div>}
         {tree}
       </aside>
 
       <section className="flex min-w-0 flex-1 flex-col gap-4" aria-live="polite">
-        <h2 className="text-lg font-semibold">
-          {selectedFolder ? selectedFolder.path : t("documents.folders.noSelection")}
-        </h2>
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="min-w-0 truncate text-lg font-semibold">
+            {selectedFolder ? selectedFolder.path : t("documents.folders.noSelection")}
+          </h2>
+          {selectedFolder && (
+            <FolderActions
+              tenantId={tenantId}
+              folder={selectedFolder}
+              onCreateSubfolder={() => {
+                setDialogTarget({ kind: "create", parent: selectedFolder });
+              }}
+              onEdit={() => {
+                setDialogTarget({ kind: "edit", folder: selectedFolder });
+              }}
+              onDeleted={(folder) => {
+                selectFolder(folder.parent_id ?? undefined);
+              }}
+            />
+          )}
+        </div>
         {/* M1-B2 replaces this with the documents table of the selected folder. Not the shared page placeholder:
             its "Dieser Bereich …" would read as "this space" here. */}
         <EmptyState
@@ -167,6 +203,18 @@ function SpaceBrowser({ tenantId, spaces }: { tenantId: string; spaces: SpaceRea
           description={t("documents.list.comingSoonDescription")}
         />
       </section>
+
+      <FolderDialog
+        tenantId={tenantId}
+        spaceId={space.id}
+        target={dialogTarget}
+        onClose={() => {
+          setDialogTarget(null);
+        }}
+        onSaved={(folder: FolderRead) => {
+          selectFolder(folder.id);
+        }}
+      />
     </div>
   );
 }
