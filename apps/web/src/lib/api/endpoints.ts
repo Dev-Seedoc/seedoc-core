@@ -4,16 +4,22 @@ import { client } from "./client";
 import { toApiError } from "./errors";
 import type {
   AcceptInvitationRequest,
+  DocumentCreate,
   DocumentRead,
+  DocumentUpdate,
+  DocumentVersionCreate,
+  DocumentVersionRead,
   FolderCreate,
   FolderRead,
   FolderUpdate,
   HealthRead,
   InvitationPreview,
+  LanguageVariantLink,
   ListDocumentsQuery,
   LoginRequest,
   MeRead,
   Page_DocumentListItem_,
+  Page_DocumentVersionRead_,
   Page_FolderRead_,
   Page_SpaceRead_,
   Page_StaffTenantListItem_,
@@ -27,7 +33,10 @@ import type {
   StaffTenantRead,
   StaffTenantUpdate,
   TotpSetupRead,
+  UploadCreate,
+  UploadRead,
   VerifyTotpRequest,
+  VersionFileUrlRead,
 } from "./types";
 
 interface ApiResult<T> {
@@ -194,6 +203,98 @@ export function restoreDocument(tenantId: string, documentId: string): Promise<D
   return unwrap(
     client.POST("/api/v1/app/tenants/{tenant_id}/documents/{document_id}/restore", {
       params: { path: { ...tenantPath(tenantId), document_id: documentId } },
+    }),
+  );
+}
+
+export function createUpload(tenantId: string, body: UploadCreate): Promise<UploadRead> {
+  return unwrap(
+    client.POST("/api/v1/app/tenants/{tenant_id}/uploads", { params: { path: tenantPath(tenantId) }, body }),
+  );
+}
+
+export function createDocument(tenantId: string, body: DocumentCreate): Promise<DocumentRead> {
+  return unwrap(
+    client.POST("/api/v1/app/tenants/{tenant_id}/documents", { params: { path: tenantPath(tenantId) }, body }),
+  );
+}
+
+function documentPath(tenantId: string, documentId: string) {
+  return { ...tenantPath(tenantId), document_id: documentId };
+}
+
+export function getDocument(tenantId: string, documentId: string): Promise<DocumentRead> {
+  return unwrap(
+    client.GET("/api/v1/app/tenants/{tenant_id}/documents/{document_id}", {
+      params: { path: documentPath(tenantId, documentId) },
+    }),
+  );
+}
+
+export function updateDocument(tenantId: string, documentId: string, body: DocumentUpdate): Promise<DocumentRead> {
+  return unwrap(
+    client.PATCH("/api/v1/app/tenants/{tenant_id}/documents/{document_id}", {
+      params: { path: documentPath(tenantId, documentId) },
+      body,
+    }),
+  );
+}
+
+export function listDocumentVersions(tenantId: string, documentId: string): Promise<Page_DocumentVersionRead_> {
+  return unwrap(
+    client.GET("/api/v1/app/tenants/{tenant_id}/documents/{document_id}/versions", {
+      params: { path: documentPath(tenantId, documentId) },
+    }),
+  );
+}
+
+export function createDocumentVersion(
+  tenantId: string,
+  documentId: string,
+  body: DocumentVersionCreate,
+): Promise<DocumentVersionRead> {
+  return unwrap(
+    client.POST("/api/v1/app/tenants/{tenant_id}/documents/{document_id}/versions", {
+      params: { path: documentPath(tenantId, documentId) },
+      body,
+    }),
+  );
+}
+
+// A presigned download link, valid for 120 s (API.md §3.3): fetched right before use, so it has no hook (NAMING §6).
+export function getVersionFileUrl(
+  tenantId: string,
+  documentId: string,
+  versionId: string,
+): Promise<VersionFileUrlRead> {
+  return unwrap(
+    client.GET("/api/v1/app/tenants/{tenant_id}/documents/{document_id}/versions/{version_id}/file", {
+      params: { path: { ...documentPath(tenantId, documentId), version_id: versionId } },
+    }),
+  );
+}
+
+export function linkLanguageVariant(
+  tenantId: string,
+  documentId: string,
+  body: LanguageVariantLink,
+): Promise<DocumentRead> {
+  return unwrap(
+    client.POST("/api/v1/app/tenants/{tenant_id}/documents/{document_id}/language-variants", {
+      params: { path: documentPath(tenantId, documentId) },
+      body,
+    }),
+  );
+}
+
+export function unlinkLanguageVariant(
+  tenantId: string,
+  documentId: string,
+  variantDocumentId: string,
+): Promise<DocumentRead> {
+  return unwrap(
+    client.DELETE("/api/v1/app/tenants/{tenant_id}/documents/{document_id}/language-variants/{variant_document_id}", {
+      params: { path: { ...documentPath(tenantId, documentId), variant_document_id: variantDocumentId } },
     }),
   );
 }

@@ -1,5 +1,6 @@
 import { createBrowserRouter, type RouteObject } from "react-router";
 
+import { DocumentDetailPage } from "@/app/documents/DocumentDetailPage";
 import { DocumentsPage } from "@/app/documents/DocumentsPage";
 import { AcceptInvitationPage } from "@/auth/AcceptInvitationPage";
 import { AuthLayout } from "@/auth/AuthLayout";
@@ -25,11 +26,17 @@ export const routes: RouteObject[] = [
       { index: true, element: <PagePlaceholder /> },
       {
         path: "documents",
-        element: <DocumentsPage />,
         handle: { crumb: (t) => t("shell.nav.documents") } satisfies RouteHandle,
+        children: [
+          { index: true, element: <DocumentsPage /> },
+          // Nested, so the breadcrumb reads "Übersicht › Dokumente › Dokument".
+          {
+            path: ":documentId",
+            element: <DocumentDetailPage />,
+            handle: { crumb: (t) => t("documents.detail.crumb") } satisfies RouteHandle,
+          },
+        ],
       },
-      // DocumentDetailPage comes with M1-B4; the table already links here.
-      { path: "documents/:documentId", element: <PagePlaceholder /> },
       {
         path: "products",
         element: <PagePlaceholder />,

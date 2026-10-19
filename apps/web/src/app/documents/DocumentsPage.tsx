@@ -1,4 +1,4 @@
-import { FolderTree as FolderTreeIcon, Library, Pencil, Plus } from "lucide-react";
+import { FolderTree as FolderTreeIcon, Library, Pencil, Plus, Upload } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
@@ -24,6 +24,7 @@ import { FolderTree } from "./FolderTree";
 import { MoveToTrashButton } from "./MoveToTrashButton";
 import { RestoreDocumentsButton } from "./RestoreDocumentsButton";
 import { SpaceDialog, type SpaceDialogTarget } from "./SpaceDialog";
+import { UploadDialog } from "./UploadDialog";
 import { useHiddenDocumentColumns } from "./useHiddenDocumentColumns";
 
 // The selection lives in the URL (`?space_id=…&folder_id=…`, the API's query names), so reload, back and links keep it.
@@ -182,6 +183,7 @@ function SpaceBrowser({ tenantId, spaces, spaceActions }: SpaceBrowserProps) {
     [searchParams, setSearchParams, spaceId],
   );
   const [dialogTarget, setDialogTarget] = useState<FolderDialogTarget | null>(null);
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
 
   if (!space) {
     return null;
@@ -313,6 +315,17 @@ function SpaceBrowser({ tenantId, spaces, spaceActions }: SpaceBrowserProps) {
           <h2 className="min-w-0 truncate text-lg font-semibold">
             {selectedFolder ? selectedFolder.path : t("documents.folders.allInSpace", { space: space.name })}
           </h2>
+          {selectedFolder && view === "library" && (
+            <Button
+              size="sm"
+              onClick={() => {
+                setIsUploadOpen(true);
+              }}
+            >
+              <Upload aria-hidden="true" />
+              {t("documents.upload.open")}
+            </Button>
+          )}
           {selectedFolder && (
             <FolderActions
               tenantId={tenantId}
@@ -383,6 +396,16 @@ function SpaceBrowser({ tenantId, spaces, spaceActions }: SpaceBrowserProps) {
         )}
       </section>
 
+      {selectedFolder && (
+        <UploadDialog
+          tenantId={tenantId}
+          folder={selectedFolder}
+          open={isUploadOpen}
+          onClose={() => {
+            setIsUploadOpen(false);
+          }}
+        />
+      )}
       <FolderDialog
         tenantId={tenantId}
         spaceId={space.id}

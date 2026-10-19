@@ -17,6 +17,11 @@ export const queryKeys = {
     // Every document list; trash/restore (and later uploads) invalidate this prefix.
     allDocuments: (tenantId: string) => ["tenants", tenantId, "documents"] as const,
     documents: (tenantId: string, query: ListDocumentsQuery) => ["tenants", tenantId, "documents", query] as const,
+    // One document and its versions, under the same prefix: trash, upload or a variant link refreshes them too.
+    document: (tenantId: string, documentId: string) =>
+      ["tenants", tenantId, "documents", "detail", documentId] as const,
+    documentVersions: (tenantId: string, documentId: string) =>
+      ["tenants", tenantId, "documents", "detail", documentId, "versions"] as const,
   },
   // Staff data is not tenant-scoped (admin DB engine); logout drops it like every non-auth query.
   staff: {

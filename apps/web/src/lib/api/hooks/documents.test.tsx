@@ -7,7 +7,16 @@ import { stubApi } from "@/test/renderRoute";
 
 import { createQueryClient } from "../queryClient";
 import type { DocumentListItem, FolderRead } from "../types";
-import { useDeleteFolder, useDocuments, useFolders, useTrashDocument } from "./documents";
+import {
+  getProcessingRefetchInterval,
+  PROCESSING_REFETCH_MS,
+  useDeleteFolder,
+  useDocuments,
+  useFolders,
+  useDocument,
+  useTrashDocument,
+  useUpdateDocument,
+} from "./documents";
 
 const TENANT_ID = "00000000-0000-4000-8000-00000000000a";
 const SPACE_ID = "00000000-0000-4000-8000-0000000000b1";
@@ -146,5 +155,90 @@ describe("document hooks", () => {
       expect(fetchMock.mock.calls.filter(([request]) => request.method === "GET")).toHaveLength(2);
     });
     expect(fetchMock.mock.calls.filter(([request]) => request.method === "POST")).toHaveLength(3);
+  });
+
+  it("asks again while a listed document is still processed, and stops when all are done", () => {
+    const pages = (statuses: DocumentListItem["processing_status"][]) => ({
+      pages: [
+        {
+          items: statuses.map((status, index) => ({
+            ...documentItem(`d-${String(index)}`),
+            processing_status: status,
+          })),
+          next_cursor: null,
+        },
+      ],
+      pageParams: [undefined],
+    });
+
+    expect(getProcessingRefetchInterval(pages(["ready", "processing"]))).toBe(PROCESSING_REFETCH_MS);
+    expect(getProcessingRefetchInterval(pages(["pending"]))).toBe(PROCESSING_REFETCH_MS);
+    expect(getProcessingRefetchInterval(pages(["ready", "failed", null]))).toBe(false);
+    expect(getProcessingRefetchInterval(undefined)).toBe(false);
+  });
+
+  it("polls the list while a document is processed and stops when it is ready", { timeout: 15_000 }, async () => {
+    let status: DocumentListItem["processing_status"] = "processing";
+    const fetchMock = stubApi({
+      [DOCUMENTS]: () => ({
+        status: 200,
+        body: { items: [{ ...documentItem("d-1"), processing_status: status }], next_cursor: null },
+      }),
+    });
+    const { result } = renderHook(() => useDocuments(TENANT_ID, {}), { wrapper });
+    const listCalls = () => fetchMock.mock.calls.filter(([request]) => request.method === "GET").length;
+
+    // The worker finishes while the list is polled: the next poll shows "ready".
+    await waitFor(() => {
+      expect(listCalls()).toBe(1);
+    });
+    status = "ready";
+    await waitFor(
+      () => {
+        expect(result.current.data?.pages[0]?.items[0]?.processing_status).toBe("ready");
+      },
+      { timeout: PROCESSING_REFETCH_MS + 2000 },
+    );
+    const callsWhenReady = listCalls();
+
+    // Nothing left to wait for: no further requests.
+    await new Promise((resolve) => setTimeout(resolve, PROCESSING_REFETCH_MS + 500));
+    expect(listCalls()).toBe(callsWhenReady);
+  });
+
+  it("refreshes the document and the lists after an update", async () => {
+    let title = "Alt";
+    const fetchMock = stubApi({
+      [`GET /api/v1/app/tenants/${TENANT_ID}/documents/d-1`]: () => ({
+        status: 200,
+        body: { ...documentItem("d-1"), title },
+      }),
+      [DOCUMENTS]: () => ({ status: 200, body: { items: [{ ...documentItem("d-1"), title }], next_cursor: null } }),
+      [`PATCH /api/v1/app/tenants/${TENANT_ID}/documents/d-1`]: () => {
+        title = "Neu";
+        return { status: 200, body: {} };
+      },
+    });
+    const { result } = renderHook(
+      () => ({
+        detail: useDocument(TENANT_ID, "d-1"),
+        list: useDocuments(TENANT_ID, {}),
+        update: useUpdateDocument(TENANT_ID, "d-1"),
+      }),
+      { wrapper },
+    );
+    await waitFor(() => {
+      expect(result.current.detail.data?.title).toBe("Alt");
+    });
+
+    await act(() => result.current.update.mutateAsync({ title: "Neu" }));
+
+    await waitFor(() => {
+      expect(result.current.detail.data?.title).toBe("Neu");
+    });
+    await waitFor(() => {
+      expect(result.current.list.data?.pages[0]?.items[0]?.title).toBe("Neu");
+    });
+    expect(fetchMock.mock.calls.some(([request]) => request.method === "PATCH")).toBe(true);
   });
 });

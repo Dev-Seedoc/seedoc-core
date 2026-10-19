@@ -437,6 +437,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/app/tenants/{tenant_id}/documents/{document_id}/language-variants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Link Language Variant */
+        post: operations["link_language_variant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/app/tenants/{tenant_id}/documents/{document_id}/language-variants/{variant_document_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Unlink Language Variant */
+        delete: operations["unlink_language_variant"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -729,6 +763,17 @@ export interface components {
             email: string;
             /** Has Account */
             has_account: boolean;
+        };
+        /**
+         * LanguageVariantLink
+         * @description Body of `link_language_variant`: the document whose language group joins the path document's group.
+         */
+        LanguageVariantLink: {
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
         };
         /** LanguageVariantRead */
         LanguageVariantRead: {
@@ -2124,6 +2169,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VersionFileUrlRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    link_language_variant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LanguageVariantLink"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unlink_language_variant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+                variant_document_id: string;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentRead"];
                 };
             };
             /** @description Validation Error */
