@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { toast } from "sonner";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { DocumentRead, DocumentVersionRead } from "@/lib/api/types";
+import type { DocumentListItem, DocumentRead, DocumentVersionRead } from "@/lib/api/types";
 import { putWithProgress } from "@/lib/putWithProgress";
 import { startDownload } from "@/lib/startDownload";
 import { apiError, type FakeAnswer, renderRoute, stubApi, TEST_ME } from "@/test/renderRoute";
@@ -313,5 +313,153 @@ describe("DocumentDetailPage – versions", () => {
     renderRoute(`/documents/${DOC_ID}`, TEST_ME);
 
     expect(await (await versionsSection()).findByLabelText("Neue Version hochladen")).toBeDisabled();
+  });
+});
+
+describe("DocumentDetailPage – language variants", () => {
+  const LINK = `POST ${BASE}/documents/${DOC_ID}/language-variants`;
+  const ENGLISH = { document_id: "d-en", language: "en", title: "Operating manual laser" };
+
+  function candidate(id: string, title: string, language: string, groupId = `g-${id}`): DocumentListItem {
+    return {
+      id,
+      title,
+      doc_type: "operating_manual",
+      language,
+      access_level: "customer",
+      folder_id: "laser",
+      folder_path: "Handbücher/Laser",
+      current_version_no: 1,
+      processing_status: "ready",
+      group_id: groupId,
+      machine_id: null,
+      trashed_at: null,
+      updated_at: "2026-10-19T08:30:00Z",
+    };
+  }
+
+  async function variantsSection() {
+    return within(await screen.findByRole("region", { name: "Sprachvarianten" }));
+  }
+
+  async function openLinkDialog() {
+    fireEvent.click(await (await variantsSection()).findByRole("button", { name: "Sprachvariante verknüpfen" }));
+    return within(await screen.findByRole("dialog"));
+  }
+
+  it("lists the variants with their language and a link to each", async () => {
+    stubDocument({ status: 200, body: documentRead({ language_variants: [ENGLISH] }) });
+    renderRoute(`/documents/${DOC_ID}`, TEST_ME);
+
+    const section = await variantsSection();
+    expect(await section.findByText("Englisch")).toBeInTheDocument();
+    expect(section.getByRole("link", { name: "Operating manual laser" })).toHaveAttribute("href", "/documents/d-en");
+  });
+
+  it("offers only other documents and marks a language the group has already", async () => {
+    stubDocument(
+      { status: 200, body: documentRead({ language_variants: [ENGLISH] }) },
+      {
+        [`GET ${BASE}/documents`]: {
+          status: 200,
+          body: {
+            items: [
+              candidate(DOC_ID, "Betriebsanleitung Laser", "de", "g-1"), // the document itself
+              candidate("d-en", "Operating manual laser", "en", "g-1"), // already in the group
+              candidate("d-fr", "Manuel laser", "fr"),
+              candidate("d-de2", "Betriebsanleitung alt", "de"),
+            ],
+            next_cursor: null,
+          },
+        },
+      },
+    );
+    renderRoute(`/documents/${DOC_ID}`, TEST_ME);
+    const dialog = await openLinkDialog();
+
+    expect(await dialog.findByRole("button", { name: "„Manuel laser“ verknüpfen" })).toBeInTheDocument();
+    expect(dialog.getByText("Sprache schon vorhanden")).toBeInTheDocument();
+    expect(dialog.queryByRole("button", { name: "„Betriebsanleitung alt“ verknüpfen" })).not.toBeInTheDocument();
+    expect(dialog.queryByText("Operating manual laser")).not.toBeInTheDocument();
+    expect(dialog.queryByText("Betriebsanleitung Laser")).not.toBeInTheDocument();
+  });
+
+  it("links the chosen document", async () => {
+    let variants = [ENGLISH];
+    const fetchMock = stubDocument(() => ({ status: 200, body: documentRead({ language_variants: variants }) }), {
+      [`GET ${BASE}/documents`]: {
+        status: 200,
+        body: { items: [candidate("d-fr", "Manuel laser", "fr")], next_cursor: null },
+      },
+      [LINK]: () => {
+        variants = [ENGLISH, { document_id: "d-fr", language: "fr", title: "Manuel laser" }];
+        return { status: 200, body: documentRead({ language_variants: variants }) };
+      },
+    });
+    const success = vi.spyOn(toast, "success");
+    renderRoute(`/documents/${DOC_ID}`, TEST_ME);
+    const dialog = await openLinkDialog();
+
+    fireEvent.click(await dialog.findByRole("button", { name: "„Manuel laser“ verknüpfen" }));
+
+    await waitFor(() => {
+      expect(success).toHaveBeenCalledWith("„Manuel laser“ als Sprachvariante verknüpft.");
+    });
+    const request = fetchMock.mock.calls.find(([entry]) => entry.method === "POST")?.[0];
+    expect(await request?.json()).toEqual({ document_id: "d-fr" });
+    expect(await (await variantsSection()).findByText("Französisch")).toBeInTheDocument();
+  });
+
+  it("explains a language that both groups have", async () => {
+    stubDocument(
+      { status: 200, body: documentRead() },
+      {
+        [`GET ${BASE}/documents`]: {
+          status: 200,
+          body: { items: [candidate("d-fr", "Manuel laser", "fr")], next_cursor: null },
+        },
+        [LINK]: apiError(409, "conflict"),
+      },
+    );
+    renderRoute(`/documents/${DOC_ID}`, TEST_ME);
+    const dialog = await openLinkDialog();
+
+    fireEvent.click(await dialog.findByRole("button", { name: "„Manuel laser“ verknüpfen" }));
+
+    expect(await dialog.findByRole("alert")).toHaveTextContent(
+      "Das geht nicht: Beide Sprachgruppen enthalten ein Dokument in derselben Sprache",
+    );
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("unlinks a variant after confirming", async () => {
+    let variants = [ENGLISH];
+    const fetchMock = stubDocument(() => ({ status: 200, body: documentRead({ language_variants: variants }) }), {
+      [`DELETE ${BASE}/documents/${DOC_ID}/language-variants/d-en`]: () => {
+        variants = [];
+        return { status: 200, body: documentRead() };
+      },
+    });
+    renderRoute(`/documents/${DOC_ID}`, TEST_ME);
+    const section = await variantsSection();
+
+    fireEvent.click(await section.findByRole("button", { name: "„Operating manual laser“ trennen" }));
+    const confirm = within(await screen.findByRole("alertdialog"));
+    expect(fetchMock.mock.calls.some(([request]) => request.method === "DELETE")).toBe(false);
+    fireEvent.click(confirm.getByRole("button", { name: "Trennen" }));
+
+    expect(await section.findByText("Noch keine Sprachvarianten verknüpft.")).toBeInTheDocument();
+  });
+
+  it("allows no changes while the document is in the trash", async () => {
+    stubDocument({
+      status: 200,
+      body: documentRead({ trashed_at: "2026-10-18T09:00:00Z", language_variants: [ENGLISH] }),
+    });
+    renderRoute(`/documents/${DOC_ID}`, TEST_ME);
+    const section = await variantsSection();
+
+    expect(await section.findByRole("button", { name: "Sprachvariante verknüpfen" })).toBeDisabled();
+    expect(section.getByRole("button", { name: "„Operating manual laser“ trennen" })).toBeDisabled();
   });
 });

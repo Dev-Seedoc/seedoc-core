@@ -321,6 +321,26 @@
       "downloadVersion": "Version {{no}} herunterladen",
       "upload": "Neue Version hochladen",
       "uploaded": "Version {{no}} hochgeladen. Sie ist jetzt die aktuelle Version."
+    },
+    "variants": {
+      "title": "Sprachvarianten",
+      "description": "Übersetzungen dieses Dokuments – je Sprache ein Dokument.",
+      "empty": "Noch keine Sprachvarianten verknüpft.",
+      "link": "Sprachvariante verknüpfen",
+      "unlink": "Trennen",
+      "unlinkVariant": "„{{title}}“ trennen",
+      "unlinkTitle": "„{{title}}“ von dieser Sprachgruppe trennen?",
+      "unlinkDescription": "Beide Dokumente bleiben erhalten. Nur die Verknüpfung als Übersetzung wird aufgehoben.",
+      "unlinked": "„{{title}}“ ist keine Sprachvariante mehr.",
+      "linked": "„{{title}}“ als Sprachvariante verknüpft.",
+      "linkTitle": "Sprachvariante für „{{title}}“ verknüpfen",
+      "linkDescription": "Wählen Sie die Übersetzung in einer anderen Sprache. Hat sie selbst schon Sprachvarianten, werden alle übernommen.",
+      "candidates": "Gefundene Dokumente",
+      "noCandidates": "Keine passenden Dokumente gefunden.",
+      "languageTaken": "Sprache schon vorhanden",
+      "choose": "Verknüpfen",
+      "linkCandidate": "„{{title}}“ verknüpfen",
+      "conflict": "Das geht nicht: Beide Sprachgruppen enthalten ein Dokument in derselben Sprache (auch im Papierkorb zählt es)."
     }
   },
   "auth": {

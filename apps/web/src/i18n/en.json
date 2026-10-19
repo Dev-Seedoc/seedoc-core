@@ -321,6 +321,26 @@
       "downloadVersion": "Download version {{no}}",
       "upload": "Upload new version",
       "uploaded": "Version {{no}} uploaded. It is now the current version."
+    },
+    "variants": {
+      "title": "Language variants",
+      "description": "Translations of this document – one document per language.",
+      "empty": "No language variants linked yet.",
+      "link": "Link language variant",
+      "unlink": "Unlink",
+      "unlinkVariant": "Unlink “{{title}}”",
+      "unlinkTitle": "Unlink “{{title}}” from this language group?",
+      "unlinkDescription": "Both documents stay. Only the link as a translation is removed.",
+      "unlinked": "“{{title}}” is no longer a language variant.",
+      "linked": "“{{title}}” linked as a language variant.",
+      "linkTitle": "Link a language variant for “{{title}}”",
+      "linkDescription": "Choose the translation in another language. If it has language variants itself, all of them join.",
+      "candidates": "Documents found",
+      "noCandidates": "No matching documents found.",
+      "languageTaken": "Language already present",
+      "choose": "Link",
+      "linkCandidate": "Link “{{title}}”",
+      "conflict": "Not possible: both language groups contain a document in the same language (one in the trash counts too)."
     }
   },
   "auth": {

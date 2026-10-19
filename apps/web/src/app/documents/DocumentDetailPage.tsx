@@ -17,6 +17,7 @@ import { getLanguageLabel } from "@/lib/languages";
 
 import { DocumentMetadataForm } from "./DocumentMetadataForm";
 import { DocumentVersions } from "./DocumentVersions";
+import { LanguageVariants } from "./LanguageVariants";
 import { RestoreDocumentsButton } from "./RestoreDocumentsButton";
 
 // `/documents/:documentId` (NAMING §7).
@@ -139,6 +140,7 @@ function DocumentOverview({ tenantId, document }: { tenantId: string; document: 
       </section>
 
       <DocumentMetadataForm tenantId={tenantId} document={document} />
+      <LanguageVariants tenantId={tenantId} document={document} />
       <DocumentVersions tenantId={tenantId} document={document} />
     </>
   );
