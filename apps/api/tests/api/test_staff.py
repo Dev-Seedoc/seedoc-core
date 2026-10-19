@@ -13,11 +13,10 @@ from starlette.requests import Request
 
 from seedoc.deps import get_ctx, require_role
 from seedoc.errors import AppError, ErrorCode
-from seedoc.mail.send import send_pending_mail
 from seedoc.models.audit import AuditEvent
 from seedoc.models.tenants import Invitation, MemberRole, TenantStatus
 from seedoc.security.sessions import SESSION_COOKIE
-from tests.conftest import ClientAs, ClientStaff, MakeMember, MakeTenant, MakeUser, MemberClient, get_mail_link
+from tests.conftest import ClientAs, ClientStaff, MakeMember, MakeTenant, MakeUser, MemberClient, RunJobs, get_mail_link
 
 pytestmark = pytest.mark.usefixtures("postgres")
 
@@ -109,7 +108,7 @@ async def test_create_tenant_with_owner_invitation(admin_db: AsyncSession, clien
 
 
 async def test_create_tenant_mails_the_owner_a_working_invitation(
-    client_staff: ClientStaff, outbox: list[EmailMessage]
+    client_staff: ClientStaff, outbox: list[EmailMessage], run_jobs: RunJobs
 ) -> None:
     staff = await client_staff()
     owner_email = f"owner-{uuid4().hex[:8]}@example.com"
@@ -117,7 +116,7 @@ async def test_create_tenant_mails_the_owner_a_working_invitation(
     response = await staff.http.post(
         "/api/v1/staff/tenants", json={"name": "Kraft & <Söhne> GmbH", "slug": _slug(), "owner_email": owner_email}
     )
-    await send_pending_mail()
+    await run_jobs()
 
     assert response.status_code == 201
     assert len(outbox) == 1
@@ -136,7 +135,7 @@ async def test_create_tenant_mails_the_owner_a_working_invitation(
 
 
 async def test_create_tenant_duplicate_slug_sends_no_mail(
-    client_staff: ClientStaff, make_tenant: MakeTenant, outbox: list[EmailMessage]
+    client_staff: ClientStaff, make_tenant: MakeTenant, outbox: list[EmailMessage], run_jobs: RunJobs
 ) -> None:
     staff = await client_staff()
     existing = await make_tenant()
@@ -144,7 +143,7 @@ async def test_create_tenant_duplicate_slug_sends_no_mail(
     await staff.http.post(
         "/api/v1/staff/tenants", json={"name": "Dup", "slug": existing.slug, "owner_email": "a@example.com"}
     )
-    await send_pending_mail()
+    await run_jobs()
 
     assert outbox == []
 

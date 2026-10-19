@@ -12,7 +12,6 @@ from starlette.requests import Request
 
 from seedoc.config import get_settings
 from seedoc.deps import get_ctx
-from seedoc.mail.send import send_pending_mail
 from seedoc.models.audit import AuditEvent
 from seedoc.models.operators import OperatorMember, OperatorOrg, OperatorRole
 from seedoc.models.tenants import Invitation, InvitationKind, MemberRole, Tenant, TenantMember
@@ -20,7 +19,7 @@ from seedoc.models.users import PasswordResetToken, User, UserSession
 from seedoc.security.passwords import hash_password
 from seedoc.security.sessions import SESSION_COOKIE
 from seedoc.security.tokens import hash_token, new_token
-from tests.conftest import ClientAs, MakeMember, MakeTenant, MakeUser, get_mail_link
+from tests.conftest import ClientAs, MakeMember, MakeTenant, MakeUser, RunJobs, get_mail_link
 
 pytestmark = pytest.mark.usefixtures("postgres")
 
@@ -305,12 +304,13 @@ async def test_reauthenticate_requires_session(client: AsyncClient) -> None:
 
 
 async def test_request_password_reset_always_202_and_creates_token_only_for_known_email(
-    admin_db: AsyncSession, make_user: MakeUser, client: AsyncClient
+    admin_db: AsyncSession, make_user: MakeUser, client: AsyncClient, run_jobs: RunJobs
 ) -> None:
     user = await _user_with_password(admin_db, make_user)
 
     known = await client.post("/api/v1/auth/password-reset", json={"email": user.email})
     unknown = await client.post("/api/v1/auth/password-reset", json={"email": "nobody@example.com"})
+    await run_jobs()  # the `send_email` job creates the token
 
     assert known.status_code == unknown.status_code == 202
     count = await admin_db.scalar(
@@ -320,13 +320,13 @@ async def test_request_password_reset_always_202_and_creates_token_only_for_know
 
 
 async def test_request_password_reset_mails_a_working_link_only_to_known_email(
-    admin_db: AsyncSession, make_user: MakeUser, client: AsyncClient, outbox: list[EmailMessage]
+    admin_db: AsyncSession, make_user: MakeUser, client: AsyncClient, outbox: list[EmailMessage], run_jobs: RunJobs
 ) -> None:
     user = await _user_with_password(admin_db, make_user)
 
     await client.post("/api/v1/auth/password-reset", json={"email": "nobody@example.com"})
     await client.post("/api/v1/auth/password-reset", json={"email": f" {user.email.upper()} "})
-    await send_pending_mail()
+    await run_jobs()
 
     assert len(outbox) == 1
     assert outbox[0]["To"] == user.email

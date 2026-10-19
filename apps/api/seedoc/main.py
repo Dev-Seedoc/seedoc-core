@@ -15,7 +15,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from seedoc.config import get_settings
 from seedoc.db.engine import dispose_engines
 from seedoc.errors import AppError, ErrorCode
-from seedoc.mail.send import send_pending_mail
+from seedoc.jobs.app import close_job_app
 from seedoc.routers import app as app_routes
 from seedoc.routers import auth, health, staff
 from seedoc.security.csrf import csrf_middleware
@@ -26,7 +26,7 @@ REQUEST_ID_HEADER = "X-Request-ID"
 log = structlog.get_logger()
 
 
-def _configure_logging() -> None:
+def configure_logging() -> None:
     structlog.configure(
         processors=[
             structlog.contextvars.merge_contextvars,
@@ -83,13 +83,13 @@ async def _handle_unexpected_error(request: Request, exc: Exception) -> JSONResp
 @asynccontextmanager
 async def _lifespan(_: FastAPI) -> AsyncGenerator[None]:
     yield
-    await send_pending_mail()
+    await close_job_app()
     await dispose_engines()
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    _configure_logging()
+    configure_logging()
 
     app = FastAPI(
         title="SeeDoc API",

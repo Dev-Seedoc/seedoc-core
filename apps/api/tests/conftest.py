@@ -1,7 +1,9 @@
 """Shared fixtures. Tests that touch the database run against a real Postgres (testcontainers), never SQLite."""
 
+import asyncio
 import os
 import re
+import sys
 import time
 from collections.abc import AsyncIterator, Iterator
 from dataclasses import dataclass
@@ -15,6 +17,7 @@ import alembic.config
 import psycopg
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # Settings are read from the environment, so test defaults must exist before seedoc is imported.
@@ -36,8 +39,14 @@ _TEST_ENV = {
 for _key, _value in _TEST_ENV.items():
     os.environ[_key] = _value
 
+# psycopg (the job queue's driver) cannot use Windows' default Proactor loop; asyncpg and httpx work on either.
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())  # pyright: ignore[reportDeprecated]
+
 from seedoc.config import get_settings  # noqa: E402
 from seedoc.db import engine as db_engine  # noqa: E402
+from seedoc.jobs.app import close_job_app, open_job_app  # noqa: E402
+from seedoc.jobs.worker import QUEUES  # noqa: E402
 from seedoc.mail import send as mail_send  # noqa: E402
 from seedoc.main import create_app  # noqa: E402
 from seedoc.models.tenants import MemberRole, Tenant, TenantMember, TenantStatus  # noqa: E402
@@ -146,6 +155,13 @@ def s3() -> Iterator[str]:
         get_s3_client.cache_clear()
 
 
+@pytest.fixture(scope="session", autouse=True)
+async def job_app_pool() -> AsyncIterator[None]:
+    """The API opens the job queue's pool on its first `defer`; close it once at the end (one loop per session)."""
+    yield
+    await close_job_app()
+
+
 @pytest.fixture(autouse=True)
 def reset_login_throttle() -> Iterator[None]:
     """The login throttle is process memory; without this, failures in one test would lock out the next."""
@@ -156,7 +172,7 @@ def reset_login_throttle() -> Iterator[None]:
 
 @pytest.fixture(autouse=True)
 def outbox(monkeypatch: pytest.MonkeyPatch) -> list[EmailMessage]:
-    """Mails "sent" in this test, instead of SMTP. Call `await send_pending_mail()` before reading it."""
+    """Mails "sent" in this test, instead of SMTP. Mail goes through the `send_email` job: `await run_jobs()` first."""
     sent: list[EmailMessage] = []
     monkeypatch.setattr(mail_send, "_send_smtp", sent.append)
     return sent
@@ -189,6 +205,29 @@ async def client() -> AsyncIterator[AsyncClient]:
         yield http
     await db_engine.dispose_engines()
     _reset_caches()
+
+
+class RunJobs(Protocol):
+    async def __call__(self) -> None: ...
+
+
+@pytest.fixture
+async def run_jobs(admin_db: AsyncSession) -> RunJobs:
+    """Empties the job queue now (jobs of earlier tests must not run here); `await run_jobs()` then runs every job
+    queued since, once, the way the worker does (as `seedoc_admin`, all queues). The API's pool is reopened on its
+    next `defer`."""
+    await admin_db.execute(text("delete from procrastinate_jobs"))
+    await admin_db.commit()
+
+    async def run() -> None:
+        await close_job_app()
+        app = await open_job_app(get_settings().database_admin_url)
+        try:
+            await app.run_worker_async(queues=QUEUES, wait=False, install_signal_handlers=False)
+        finally:
+            await close_job_app()
+
+    return run
 
 
 @pytest.fixture

@@ -6,8 +6,7 @@ presigned PUT; the browser uploads; `create_document` / `create_document_version
 the rows. Network work (reading and copying the object) happens outside the database transaction; if the
 transaction then fails, the copied object is removed again.
 
-Versions start as `pending`. The worker (M1-A6) picks them up with `process_version`; until it exists they stay
-`pending`.
+Versions start as `pending`; after the commit `process_version` is queued for the worker (services/processing.py).
 """
 
 import base64
@@ -25,6 +24,7 @@ from seedoc.audit import write_audit_event
 from seedoc.db.engine import tenant_transaction
 from seedoc.deps import RequestContext
 from seedoc.errors import AppError, ErrorCode
+from seedoc.jobs.processing import defer_process_version
 from seedoc.models.documents import Document, DocumentVersion, Folder, Space, Upload
 from seedoc.schemas.common import Page
 from seedoc.schemas.documents import (
@@ -123,6 +123,7 @@ async def create_document(db: AsyncSession, ctx: RequestContext, body: DocumentC
         raise
 
     await _delete_quietly(upload.storage_key)
+    await defer_process_version(version_id)
     return read.model_copy(update={"duplicate_of_document_id": duplicate_of})
 
 
@@ -232,6 +233,7 @@ async def create_document_version(
         raise
 
     await _delete_quietly(upload.storage_key)
+    await defer_process_version(version_id)
     return read.model_copy(update={"duplicate_of_document_id": duplicate_of})
 
 

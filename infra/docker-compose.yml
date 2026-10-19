@@ -83,10 +83,10 @@ services:
         condition: service_healthy
 
   worker:
-    # Enabled with the Procrastinate setup (ROADMAP M1-A6).
-    profiles: ["worker"]
+    # Runs queued jobs (process_version …), as seedoc_admin. Locally `make dev` starts it outside Docker.
+    profiles: ["app"]
     image: seedoc-api
-    command: ["procrastinate", "--app=seedoc.jobs.app", "worker"]
+    command: ["python", "-m", "seedoc.jobs.worker"]
     env_file: ../.env
     environment: *api-env
     depends_on:

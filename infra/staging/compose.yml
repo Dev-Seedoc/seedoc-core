@@ -56,6 +56,16 @@ services:
       timeout: 5s
       retries: 3
 
+  # Runs queued jobs (process_version …) as seedoc_admin; same image as the API, other command (ARCHITECTURE §11).
+  worker:
+    <<: *api
+    command: ["python", "-m", "seedoc.jobs.worker"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      s3:
+        condition: service_started
+
   # Object storage (S3 API), the same server as local (D14). Browsers reach it through Caddy at FILES_HOST, because
   # presigned URLs are signed for that address; the API uses the same address (S3_ENDPOINT).
   s3:

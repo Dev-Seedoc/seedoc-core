@@ -34,7 +34,7 @@ ssh_run "set -e; cd $APP_DIR
   docker compose run --rm migrate
   docker compose up -d s3
   docker compose run --rm s3-init
-  docker compose up -d --remove-orphans s3 api web
+  docker compose up -d --remove-orphans s3 api worker web
   docker image prune -f >/dev/null"
 
 echo "== health check"

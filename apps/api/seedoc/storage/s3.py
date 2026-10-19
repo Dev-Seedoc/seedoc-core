@@ -110,6 +110,21 @@ async def read_object_digest(key: str, head_length: int = 8) -> StoredObject | N
     return await asyncio.to_thread(read)
 
 
+async def read_object(key: str) -> bytes | None:
+    """The whole object (a version is ≤ 100 MB; only the worker reads files in full). `None` if the key does not
+    exist."""
+    client, bucket = get_s3_client(), get_settings().s3_bucket
+
+    def read() -> bytes | None:
+        try:
+            response = client.get_object(Bucket=bucket, Key=key)
+        except client.exceptions.NoSuchKey:
+            return None
+        return response["Body"].read()
+
+    return await asyncio.to_thread(read)
+
+
 async def copy_object(source_key: str, target_key: str) -> None:
     """Server-side copy inside the bucket (no download), e.g. a verified upload to its version key."""
     client, bucket = get_s3_client(), get_settings().s3_bucket

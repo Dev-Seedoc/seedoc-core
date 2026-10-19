@@ -1,12 +1,12 @@
 COMPOSE := docker compose -f infra/docker-compose.yml
 API := cd apps/api &&
 
-.PHONY: help install up down dev dev-api dev-web migrate seed test test-api test-web e2e lint typecheck gen-api check-branch
+.PHONY: help install up down dev dev-api dev-worker dev-web migrate seed test test-api test-web e2e lint typecheck gen-api check-branch
 
 help:
 	@echo "install    install backend (uv) and frontend (pnpm) dependencies"
 	@echo "up / down  start / stop postgres, minio, mailpit"
-	@echo "dev        api on :8000 and web on :5173 (mailpit UI on :8025)"
+	@echo "dev        api on :8000, worker (PDF processing) and web on :5173 (mailpit UI on :8025)"
 	@echo "migrate    alembic upgrade head (as seedoc_owner)"
 	@echo "seed       demo tenant + owner/admin/editor + staff user (ARGS=--reset-passwords for new passwords,"
 	@echo "           ARGS=--e2e-staff for the Playwright staff user from apps/web/e2e/.env)"
@@ -26,10 +26,13 @@ down:
 	$(COMPOSE) down
 
 dev:
-	$(MAKE) -j2 dev-api dev-web
+	$(MAKE) -j3 dev-api dev-worker dev-web
 
 dev-api:
 	$(API) uv run uvicorn seedoc.main:create_app --factory --reload --port 8000
+
+dev-worker:
+	$(API) uv run python -m seedoc.jobs.worker
 
 dev-web:
 	pnpm --dir apps/web dev

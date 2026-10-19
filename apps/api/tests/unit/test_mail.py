@@ -1,6 +1,5 @@
 """Unit tests for mail rendering and SMTP delivery (M0-A7, ARCHITECTURE D20)."""
 
-import asyncio
 import ssl
 from collections.abc import Iterator
 from email.message import EmailMessage
@@ -11,7 +10,7 @@ import structlog
 
 from seedoc.config import get_settings
 from seedoc.mail import send as mail_send
-from seedoc.mail.send import MailTemplate, build_email, get_app_link, send_email, send_pending_mail
+from seedoc.mail.send import MailDeliveryError, MailTemplate, build_email, deliver_email, get_app_link
 
 # The autouse `outbox` fixture replaces `_send_smtp`; keep the real one for the SMTP tests.
 _real_send_smtp = mail_send._send_smtp  # pyright: ignore[reportPrivateUsage]
@@ -137,35 +136,17 @@ def test_send_smtp_on_implicit_tls_ports_uses_tls_and_logs_in(
     assert smtp.sent == [message]
 
 
-def _finished_task_of_a_closed_loop() -> asyncio.Task[None]:
-    other_loop = asyncio.new_event_loop()
-    try:
-        task = other_loop.create_task(asyncio.sleep(0))
-        other_loop.run_until_complete(task)
-    finally:
-        other_loop.close()
-    return task
-
-
-async def test_send_pending_mail_ignores_finished_tasks_of_other_loops() -> None:
-    stale = await asyncio.to_thread(_finished_task_of_a_closed_loop)  # a second loop cannot run on this thread
-    pending = mail_send._pending  # pyright: ignore[reportPrivateUsage]
-    pending.add(stale)  # as if its `discard` callback never ran: the case that once made this wait spin forever
-
-    await asyncio.wait_for(send_pending_mail(), timeout=2)
-
-    assert stale not in pending
-
-
-async def test_send_email_failure_is_logged_without_the_address(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_deliver_email_failure_is_raised_and_logged_without_the_address(monkeypatch: pytest.MonkeyPatch) -> None:
     def refuse(_: EmailMessage) -> None:
         raise ConnectionRefusedError("user@example.com refused")
 
     monkeypatch.setattr(mail_send, "_send_smtp", refuse)
 
-    with structlog.testing.capture_logs() as logs:
-        send_email(MailTemplate.PASSWORD_RESET, "user@example.com", {"reset_url": "http://x/reset-password/t"})
-        await send_pending_mail()  # does not raise
+    with structlog.testing.capture_logs() as logs, pytest.raises(MailDeliveryError) as raised:
+        deliver_email(MailTemplate.PASSWORD_RESET, "user@example.com", {"reset_url": "http://x/reset-password/t"})
+
+    assert str(raised.value) == "ConnectionRefusedError"  # the job's retry log never shows the address
+    assert raised.value.__cause__ is None
 
     assert logs == [
         {

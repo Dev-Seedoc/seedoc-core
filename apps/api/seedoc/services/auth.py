@@ -1,6 +1,6 @@
 """Auth service (API.md §2, BUSINESS_RULES §2). Each function owns its transaction."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import func, select, text, update
@@ -10,7 +10,8 @@ from seedoc.audit import write_audit_event
 from seedoc.db.engine import set_tenant
 from seedoc.deps import RequestContext
 from seedoc.errors import AppError, ErrorCode
-from seedoc.mail.send import MailTemplate, get_app_link, send_email
+from seedoc.jobs.mail import defer_send_email
+from seedoc.mail.send import MailTemplate
 from seedoc.models.operators import OperatorMember, OperatorOrg, OperatorRole
 from seedoc.models.tenants import Invitation, InvitationKind, MemberRole, Tenant, TenantMember
 from seedoc.models.users import PasswordResetToken, User, UserSession
@@ -31,7 +32,7 @@ from seedoc.schemas.auth import (
 from seedoc.security.passwords import hash_password, verify_password_or_dummy
 from seedoc.security.rate_limit import check_login_rate_limit, record_failed_login, reset_failed_login
 from seedoc.security.sessions import create_session, revoke_all_user_sessions, revoke_session
-from seedoc.security.tokens import hash_token, new_token
+from seedoc.security.tokens import hash_token
 from seedoc.security.totp import (
     decrypt_totp_secret,
     encrypt_totp_secret,
@@ -39,8 +40,6 @@ from seedoc.security.totp import (
     new_totp_secret,
     verify_totp_code,
 )
-
-PASSWORD_RESET_TTL = timedelta(hours=1)
 
 
 class _WrongPasswordError(Exception):
@@ -126,19 +125,13 @@ async def reauthenticate(db: AsyncSession, ctx: RequestContext, body: Reauthenti
 async def request_password_reset(db: AsyncSession, ctx: RequestContext, body: PasswordResetRequest) -> None:
     """Always succeeds (202), whether or not the e-mail has an account — no user enumeration.
 
-    The mail goes out in the background (`send_email`), so the response time does not reveal a known address.
+    Only a `send_email` job is queued (it creates the reset token, services/mail.py), so the response time does not
+    reveal a known address and the request never waits for SMTP.
     """
     async with db.begin():
-        user = (await db.execute(select(User.id, User.email).where(User.email == _normalize_email(body.email)))).first()
-        if user is None:
-            return
-        token = new_token()
-        db.add(
-            PasswordResetToken(
-                user_id=user.id, token_hash=hash_token(token), expires_at=datetime.now(UTC) + PASSWORD_RESET_TTL
-            )
-        )
-    send_email(MailTemplate.PASSWORD_RESET, user.email, {"reset_url": get_app_link(f"/reset-password/{token}")})
+        user_id = await db.scalar(select(User.id).where(User.email == _normalize_email(body.email)))
+    if user_id is not None:
+        await defer_send_email(MailTemplate.PASSWORD_RESET, user_id)
 
 
 async def confirm_password_reset(db: AsyncSession, ctx: RequestContext, body: PasswordResetConfirmRequest) -> None:
