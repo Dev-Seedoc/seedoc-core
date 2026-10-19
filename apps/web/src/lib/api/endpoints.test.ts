@@ -1,6 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { deleteFolder, getMe, listFolders, login, logout, updateFolder } from "./endpoints";
+import {
+  deleteFolder,
+  getMe,
+  listDocuments,
+  listFolders,
+  login,
+  logout,
+  trashDocument,
+  updateFolder,
+} from "./endpoints";
 import { ApiError } from "./errors";
 
 const ME = {
@@ -81,6 +90,33 @@ describe("endpoints", () => {
     expect([remove?.method, new URL(remove?.url ?? "").pathname]).toEqual([
       "DELETE",
       "/api/v1/app/tenants/t-1/folders/f-1",
+    ]);
+  });
+
+  it("sends the document filters as query parameters and leaves out empty ones", async () => {
+    const fetchMock = mockFetch(jsonResponse(200, { items: [], next_cursor: null }));
+
+    await listDocuments("t-1", { space_id: "s-1", doc_type: "datasheet", q: "Pumpe", cursor: "c-2" });
+
+    const url = new URL(fetchMock.mock.calls[0]?.[0].url ?? "");
+    expect(url.pathname).toBe("/api/v1/app/tenants/t-1/documents");
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      space_id: "s-1",
+      doc_type: "datasheet",
+      q: "Pumpe",
+      cursor: "c-2",
+    });
+  });
+
+  it("trashes a document with POST …/trash", async () => {
+    const fetchMock = mockFetch(jsonResponse(200, {}));
+
+    await trashDocument("t-1", "d-1");
+
+    const request = fetchMock.mock.calls[0]?.[0];
+    expect([request?.method, new URL(request?.url ?? "").pathname]).toEqual([
+      "POST",
+      "/api/v1/app/tenants/t-1/documents/d-1/trash",
     ]);
   });
 });

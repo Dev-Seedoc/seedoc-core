@@ -131,18 +131,119 @@
       "label": "Space",
       "emptyTitle": "No spaces yet",
       "emptyDescription": "Spaces organise your documentation, e.g. by product line. An administrator can create a space.",
-      "loadFailed": "The spaces could not be loaded."
+      "loadFailed": "The spaces could not be loaded.",
+      "create": "Create space",
+      "rename": "Rename space",
+      "emptyDescriptionAdmin": "Spaces organise your documentation, e.g. by product line. Create the first space."
     },
     "folders": {
       "treeLabel": "Folders in {{space}}",
       "emptyTitle": "No folders yet",
       "emptyDescription": "This space has no folders yet.",
       "loadFailed": "The folders could not be loaded.",
-      "noSelection": "No folder selected"
+      "create": "Create folder",
+      "allInSpace": "All documents in “{{space}}”"
     },
-    "list": {
-      "comingSoonTitle": "Document list coming soon",
-      "comingSoonDescription": "The documents of the selected folder will be shown here soon."
+    "folderDialog": {
+      "createTitle": "Create folder",
+      "createSubfolderTitle": "Create subfolder in “{{parent}}”",
+      "editTitle": "Edit folder",
+      "description": "The defaults are suggested for new documents in this folder. Existing documents do not change.",
+      "name": "Name",
+      "accessLevel": "Visibility (default)",
+      "docType": "Document type (default)",
+      "language": "Language (default)",
+      "noDefault": "No default",
+      "nameRequired": "Please enter a name.",
+      "nameTooLong": "The name may be at most 200 characters long.",
+      "nameTaken": "A folder with this name already exists here.",
+      "submitCreate": "Create",
+      "created": "Folder created.",
+      "saved": "Folder saved."
+    },
+    "folderActions": {
+      "label": "Folder actions",
+      "createSubfolder": "Create subfolder",
+      "deleteTitle": "Delete folder “{{name}}”?",
+      "deleteDescription": "The folder is deleted permanently. This is only possible if it has no subfolders and no documents, including documents in the trash.",
+      "deleted": "Folder deleted.",
+      "notEmpty": "The folder is not empty. First remove its subfolders and documents, including those in the trash."
+    },
+    "spaceDialog": {
+      "createTitle": "Create space",
+      "renameTitle": "Rename space",
+      "description": "A space groups folders, e.g. all documents of one product line.",
+      "name": "Name",
+      "nameRequired": "Please enter a name.",
+      "nameTooLong": "The name may be at most 200 characters long.",
+      "submitCreate": "Create",
+      "created": "Space created.",
+      "renamed": "Space renamed."
+    },
+    "table": {
+      "title": "Title",
+      "docType": "Document type",
+      "language": "Language",
+      "accessLevel": "Visibility",
+      "folder": "Folder",
+      "version": "Version",
+      "versionNo": "V{{no}}",
+      "status": "Status",
+      "updatedAt": "Updated",
+      "loadMore": "Load more",
+      "loadFailed": "The documents could not be loaded.",
+      "emptyTitle": "No documents yet",
+      "emptyDescription": "Uploaded documents appear here.",
+      "noMatchesTitle": "No documents found",
+      "noMatchesDescription": "No document matches the selected filters.",
+      "trashedAt": "Deleted on",
+      "actions": "Actions"
+    },
+    "filters": {
+      "label": "Filter documents",
+      "search": "Search titles",
+      "docType": "Document type",
+      "allDocTypes": "All document types",
+      "language": "Language",
+      "allLanguages": "All languages",
+      "accessLevel": "Visibility",
+      "allAccessLevels": "Any visibility",
+      "status": "Status",
+      "allStatuses": "Any status",
+      "reset": "Reset filters"
+    },
+    "columns": {
+      "label": "Columns",
+      "title": "Visible columns"
+    },
+    "selection": {
+      "selectAll": "Select all loaded documents",
+      "selectRow": "Select “{{title}}”",
+      "count_one": "{{count}} document selected",
+      "count_other": "{{count}} documents selected",
+      "clear": "Clear selection"
+    },
+    "trash": {
+      "moveToTrash": "Move to trash",
+      "confirmTitle_one": "Move {{count}} document to the trash?",
+      "confirmTitle_other": "Move {{count}} documents to the trash?",
+      "confirmDescription": "The documents disappear from the library and can be restored for 30 days. Releases that were already published keep showing their version.",
+      "moved_one": "{{count}} document moved to the trash.",
+      "moved_other": "{{count}} documents moved to the trash.",
+      "partlyMoved": "{{moved}} moved, {{failed}} failed. The failed documents stay selected.",
+      "restore": "Restore",
+      "restoreRow": "Restore “{{title}}”",
+      "restored_one": "{{count}} document restored.",
+      "restored_other": "{{count}} documents restored.",
+      "partlyRestored": "{{restored}} restored, {{failed}} failed. The failed documents stay selected.",
+      "hint": "Documents in the trash can be restored for 30 days. After that they are deleted for good unless a release contains them.",
+      "emptyTitle": "The trash is empty",
+      "emptyDescription": "Documents you move to the trash appear here."
+    },
+    "views": {
+      "label": "View",
+      "library": "Documents",
+      "trash": "Trash"
     }
   },
   "auth": {

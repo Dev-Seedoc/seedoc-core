@@ -4,13 +4,16 @@ import { client } from "./client";
 import { toApiError } from "./errors";
 import type {
   AcceptInvitationRequest,
+  DocumentRead,
   FolderCreate,
   FolderRead,
   FolderUpdate,
   HealthRead,
   InvitationPreview,
+  ListDocumentsQuery,
   LoginRequest,
   MeRead,
+  Page_DocumentListItem_,
   Page_FolderRead_,
   Page_SpaceRead_,
   Page_StaffTenantListItem_,
@@ -167,6 +170,30 @@ export function deleteFolder(tenantId: string, folderId: string): Promise<void> 
   return unwrapEmpty(
     client.DELETE("/api/v1/app/tenants/{tenant_id}/folders/{folder_id}", {
       params: { path: { ...tenantPath(tenantId), folder_id: folderId } },
+    }),
+  );
+}
+
+// Manufacturer app: documents (API.md §3.3)
+
+export function listDocuments(tenantId: string, query: ListDocumentsQuery): Promise<Page_DocumentListItem_> {
+  return unwrap(
+    client.GET("/api/v1/app/tenants/{tenant_id}/documents", { params: { path: tenantPath(tenantId), query } }),
+  );
+}
+
+export function trashDocument(tenantId: string, documentId: string): Promise<DocumentRead> {
+  return unwrap(
+    client.POST("/api/v1/app/tenants/{tenant_id}/documents/{document_id}/trash", {
+      params: { path: { ...tenantPath(tenantId), document_id: documentId } },
+    }),
+  );
+}
+
+export function restoreDocument(tenantId: string, documentId: string): Promise<DocumentRead> {
+  return unwrap(
+    client.POST("/api/v1/app/tenants/{tenant_id}/documents/{document_id}/restore", {
+      params: { path: { ...tenantPath(tenantId), document_id: documentId } },
     }),
   );
 }

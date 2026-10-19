@@ -1,18 +1,21 @@
-// TanStack Query hooks for the document library: spaces and folders (docs/API.md §3.2), more with M1-B2.
+// TanStack Query hooks for the document library: spaces and folders (API.md §3.2), documents (§3.3).
 // Names from the "Frontend fn / hook" column. Every hook takes the tenant id from `useCurrentTenant()`.
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   createFolder,
   createSpace,
   deleteFolder,
+  listDocuments,
   listFolders,
   listSpaces,
+  restoreDocument,
+  trashDocument,
   updateFolder,
   updateSpace,
 } from "../endpoints";
 import { queryKeys } from "../queryKeys";
-import type { FolderCreate, FolderUpdate, SpaceCreate, SpaceUpdate } from "../types";
+import type { FolderCreate, FolderUpdate, ListDocumentsQuery, SpaceCreate, SpaceUpdate } from "../types";
 
 // The whole list in one page (`next_cursor` is always null for spaces and folders).
 export function useSpaces(tenantId: string) {
@@ -89,5 +92,60 @@ export function useDeleteFolder(tenantId: string) {
     mutationFn: (folderId: string) => deleteFolder(tenantId, folderId),
     meta: { errorToast: false },
     onSuccess: invalidateFolders,
+  });
+}
+
+// Documents (API.md §3.3). The list is paged by `next_cursor`; `fetchNextPage()` loads more ("Mehr laden"). `query`
+// holds the filters without `cursor`; every filter combination is its own cache entry.
+export function useDocuments(tenantId: string, query: Omit<ListDocumentsQuery, "cursor">) {
+  return useInfiniteQuery({
+    queryKey: queryKeys.tenants.documents(tenantId, query),
+    queryFn: ({ pageParam }) => listDocuments(tenantId, { ...query, cursor: pageParam }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
+    // DocumentsTable shows load errors with a retry button.
+    meta: { errorToast: false },
+  });
+}
+
+// What a trash or restore of several documents did. Both actions are safe to repeat (API: trashing a trashed
+// document changes nothing), so a partly failed batch can simply be run again for `failed`.
+export interface BulkResult {
+  succeeded: string[];
+  failed: string[];
+}
+
+// One request per document (the API has no bulk endpoint), all at once; never throws, the caller reports the result.
+async function runForEach(
+  documentIds: string[],
+  action: (documentId: string) => Promise<unknown>,
+): Promise<BulkResult> {
+  const results = await Promise.allSettled(documentIds.map(action));
+  return {
+    succeeded: documentIds.filter((_, index) => results[index]?.status === "fulfilled"),
+    failed: documentIds.filter((_, index) => results[index]?.status === "rejected"),
+  };
+}
+
+// Trash and restore change which list a document belongs to: every document list is reloaded once the whole batch
+// is done (not once per document). One document is a list of one.
+function useInvalidateDocuments(tenantId: string) {
+  const queryClient = useQueryClient();
+  return () => queryClient.invalidateQueries({ queryKey: queryKeys.tenants.allDocuments(tenantId) });
+}
+
+export function useTrashDocument(tenantId: string) {
+  const invalidateDocuments = useInvalidateDocuments(tenantId);
+  return useMutation({
+    mutationFn: (documentIds: string[]) => runForEach(documentIds, (id) => trashDocument(tenantId, id)),
+    onSettled: invalidateDocuments,
+  });
+}
+
+export function useRestoreDocument(tenantId: string) {
+  const invalidateDocuments = useInvalidateDocuments(tenantId);
+  return useMutation({
+    mutationFn: (documentIds: string[]) => runForEach(documentIds, (id) => restoreDocument(tenantId, id)),
+    onSettled: invalidateDocuments,
   });
 }

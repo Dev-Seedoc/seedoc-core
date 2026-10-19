@@ -1,5 +1,5 @@
 import { ChevronRight, Folder, FolderOpen } from "lucide-react";
-import { type KeyboardEvent, useMemo, useRef, useState } from "react";
+import { type KeyboardEvent, useId, useMemo, useRef, useState } from "react";
 
 import type { FolderRead } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
@@ -47,6 +47,18 @@ interface FolderTreeProps {
 export function FolderTree({ folders, selectedFolderId, onSelect, label }: FolderTreeProps) {
   const tree = useMemo(() => buildFolderTree(folders), [folders]);
   const [expanded, setExpanded] = useState(() => new Set(ancestorIds(folders, selectedFolderId)));
+  // When the selection changes from outside (new subfolder, back button, link) or the list reloads with it, open
+  // its parents so it is visible. Adjusted during render instead of in an effect (react.dev "You Might Not Need an
+  // Effect"); folders the user closed stay closed until then.
+  const [shownSelection, setShownSelection] = useState({ folders, selectedFolderId });
+  if (shownSelection.folders !== folders || shownSelection.selectedFolderId !== selectedFolderId) {
+    setShownSelection({ folders, selectedFolderId });
+    const closedParents = ancestorIds(folders, selectedFolderId).filter((id) => !expanded.has(id));
+    if (closedParents.length > 0) {
+      setExpanded(new Set([...expanded, ...closedParents]));
+    }
+  }
+  const idPrefix = useId();
   const [focusedId, setFocusedId] = useState<string | undefined>(undefined);
   const rowRefs = useRef(new Map<string, HTMLLIElement>());
 
@@ -142,6 +154,8 @@ export function FolderTree({ folders, selectedFolderId, onSelect, label }: Folde
             }
           }}
           role="treeitem"
+          // Named by the folder name alone, not by the text of all its open subfolders.
+          aria-labelledby={`${idPrefix}-${id}`}
           aria-level={level}
           aria-selected={isSelected}
           aria-expanded={hasChildren ? isOpen : undefined}
@@ -177,7 +191,9 @@ export function FolderTree({ folders, selectedFolderId, onSelect, label }: Folde
               <ChevronRight className={cn("size-4 transition-transform", isOpen && "rotate-90")} />
             </span>
             <Icon className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
-            <span className="truncate">{node.folder.name}</span>
+            <span id={`${idPrefix}-${id}`} className="truncate">
+              {node.folder.name}
+            </span>
           </div>
           {hasChildren && isOpen && (
             <ul role="group" className="flex flex-col">

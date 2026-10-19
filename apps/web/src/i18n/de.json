@@ -131,18 +131,119 @@
       "label": "Bereich",
       "emptyTitle": "Noch keine Bereiche",
       "emptyDescription": "Bereiche gliedern Ihre Dokumentation, z. B. nach Produktlinie. Ein Administrator kann einen Bereich anlegen.",
-      "loadFailed": "Die Bereiche konnten nicht geladen werden."
+      "loadFailed": "Die Bereiche konnten nicht geladen werden.",
+      "create": "Bereich anlegen",
+      "rename": "Bereich umbenennen",
+      "emptyDescriptionAdmin": "Bereiche gliedern Ihre Dokumentation, z. B. nach Produktlinie. Legen Sie den ersten Bereich an."
     },
     "folders": {
       "treeLabel": "Ordner in {{space}}",
       "emptyTitle": "Noch keine Ordner",
       "emptyDescription": "In diesem Bereich gibt es noch keine Ordner.",
       "loadFailed": "Die Ordner konnten nicht geladen werden.",
-      "noSelection": "Kein Ordner ausgewählt"
+      "create": "Ordner anlegen",
+      "allInSpace": "Alle Dokumente in „{{space}}“"
     },
-    "list": {
-      "comingSoonTitle": "Dokumentenliste folgt",
-      "comingSoonDescription": "Hier sehen Sie bald die Dokumente des ausgewählten Ordners."
+    "folderDialog": {
+      "createTitle": "Ordner anlegen",
+      "createSubfolderTitle": "Unterordner in „{{parent}}“ anlegen",
+      "editTitle": "Ordner bearbeiten",
+      "description": "Die Vorgaben werden neuen Dokumenten in diesem Ordner vorgeschlagen. Bestehende Dokumente ändern sich dadurch nicht.",
+      "name": "Name",
+      "accessLevel": "Sichtbarkeit (Vorgabe)",
+      "docType": "Dokumenttyp (Vorgabe)",
+      "language": "Sprache (Vorgabe)",
+      "noDefault": "Keine Vorgabe",
+      "nameRequired": "Bitte geben Sie einen Namen ein.",
+      "nameTooLong": "Der Name darf höchstens 200 Zeichen lang sein.",
+      "nameTaken": "Ein Ordner mit diesem Namen existiert hier bereits.",
+      "submitCreate": "Anlegen",
+      "created": "Ordner angelegt.",
+      "saved": "Ordner gespeichert."
+    },
+    "folderActions": {
+      "label": "Ordner-Aktionen",
+      "createSubfolder": "Unterordner anlegen",
+      "deleteTitle": "Ordner „{{name}}“ löschen?",
+      "deleteDescription": "Der Ordner wird endgültig gelöscht. Das ist nur möglich, wenn er keine Unterordner und keine Dokumente enthält – auch keine im Papierkorb.",
+      "deleted": "Ordner gelöscht.",
+      "notEmpty": "Der Ordner ist nicht leer. Entfernen Sie zuerst seine Unterordner und Dokumente – auch die im Papierkorb."
+    },
+    "spaceDialog": {
+      "createTitle": "Bereich anlegen",
+      "renameTitle": "Bereich umbenennen",
+      "description": "Ein Bereich fasst Ordner zusammen, z. B. alle Unterlagen einer Produktlinie.",
+      "name": "Name",
+      "nameRequired": "Bitte geben Sie einen Namen ein.",
+      "nameTooLong": "Der Name darf höchstens 200 Zeichen lang sein.",
+      "submitCreate": "Anlegen",
+      "created": "Bereich angelegt.",
+      "renamed": "Bereich umbenannt."
+    },
+    "table": {
+      "title": "Titel",
+      "docType": "Dokumenttyp",
+      "language": "Sprache",
+      "accessLevel": "Sichtbarkeit",
+      "folder": "Ordner",
+      "version": "Version",
+      "versionNo": "V{{no}}",
+      "status": "Status",
+      "updatedAt": "Geändert",
+      "loadMore": "Mehr laden",
+      "loadFailed": "Die Dokumente konnten nicht geladen werden.",
+      "emptyTitle": "Noch keine Dokumente",
+      "emptyDescription": "Hochgeladene Dokumente erscheinen hier.",
+      "noMatchesTitle": "Keine Dokumente gefunden",
+      "noMatchesDescription": "Kein Dokument passt zu den gewählten Filtern.",
+      "trashedAt": "Gelöscht am",
+      "actions": "Aktionen"
+    },
+    "filters": {
+      "label": "Dokumente filtern",
+      "search": "Titel suchen",
+      "docType": "Dokumenttyp",
+      "allDocTypes": "Alle Dokumenttypen",
+      "language": "Sprache",
+      "allLanguages": "Alle Sprachen",
+      "accessLevel": "Sichtbarkeit",
+      "allAccessLevels": "Jede Sichtbarkeit",
+      "status": "Status",
+      "allStatuses": "Jeder Status",
+      "reset": "Filter zurücksetzen"
+    },
+    "columns": {
+      "label": "Spalten",
+      "title": "Angezeigte Spalten"
+    },
+    "selection": {
+      "selectAll": "Alle geladenen Dokumente auswählen",
+      "selectRow": "„{{title}}“ auswählen",
+      "count_one": "{{count}} Dokument ausgewählt",
+      "count_other": "{{count}} Dokumente ausgewählt",
+      "clear": "Auswahl aufheben"
+    },
+    "trash": {
+      "moveToTrash": "In den Papierkorb",
+      "confirmTitle_one": "{{count}} Dokument in den Papierkorb verschieben?",
+      "confirmTitle_other": "{{count}} Dokumente in den Papierkorb verschieben?",
+      "confirmDescription": "Die Dokumente verschwinden aus der Bibliothek und lassen sich 30 Tage lang wiederherstellen. Bereits veröffentlichte Freigaben zeigen weiterhin ihre Version.",
+      "moved_one": "{{count}} Dokument in den Papierkorb verschoben.",
+      "moved_other": "{{count}} Dokumente in den Papierkorb verschoben.",
+      "partlyMoved": "{{moved}} verschoben, {{failed}} fehlgeschlagen. Die fehlgeschlagenen Dokumente bleiben ausgewählt.",
+      "restore": "Wiederherstellen",
+      "restoreRow": "„{{title}}“ wiederherstellen",
+      "restored_one": "{{count}} Dokument wiederhergestellt.",
+      "restored_other": "{{count}} Dokumente wiederhergestellt.",
+      "partlyRestored": "{{restored}} wiederhergestellt, {{failed}} fehlgeschlagen. Die fehlgeschlagenen Dokumente bleiben ausgewählt.",
+      "hint": "Dokumente im Papierkorb lassen sich 30 Tage lang wiederherstellen. Danach werden sie endgültig gelöscht, sofern keine Freigabe sie enthält.",
+      "emptyTitle": "Der Papierkorb ist leer",
+      "emptyDescription": "Dokumente, die Sie in den Papierkorb verschieben, erscheinen hier."
+    },
+    "views": {
+      "label": "Ansicht",
+      "library": "Dokumente",
+      "trash": "Papierkorb"
     }
   },
   "auth": {
