@@ -1,5 +1,5 @@
-"""Documents and versions (API.md §3.3): any member (`EditorCtx`). HTTP only; the rules live in
-services/documents.py."""
+"""Documents, versions and language variants (API.md §3.3): any member (`EditorCtx`). HTTP only; the rules live in
+services/documents.py and services/language_variants.py."""
 
 from typing import Annotated
 from uuid import UUID
@@ -16,9 +16,11 @@ from seedoc.schemas.documents import (
     DocumentUpdate,
     DocumentVersionCreate,
     DocumentVersionRead,
+    LanguageVariantLink,
     VersionFileUrlRead,
 )
 from seedoc.services import documents as documents_service
+from seedoc.services import language_variants as language_variants_service
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -72,3 +74,17 @@ async def get_version_file_url(
     document_id: UUID, version_id: UUID, db: DbSession, ctx: EditorCtx
 ) -> VersionFileUrlRead:
     return await documents_service.get_version_file_url(db, ctx, document_id, version_id)
+
+
+@router.post("/{document_id}/language-variants")
+async def link_language_variant(
+    document_id: UUID, body: LanguageVariantLink, db: DbSession, ctx: EditorCtx
+) -> DocumentRead:
+    return await language_variants_service.link_language_variant(db, ctx, document_id, body)
+
+
+@router.delete("/{document_id}/language-variants/{variant_document_id}")
+async def unlink_language_variant(
+    document_id: UUID, variant_document_id: UUID, db: DbSession, ctx: EditorCtx
+) -> DocumentRead:
+    return await language_variants_service.unlink_language_variant(db, ctx, document_id, variant_document_id)

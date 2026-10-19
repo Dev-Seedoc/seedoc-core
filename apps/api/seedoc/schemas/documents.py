@@ -63,6 +63,12 @@ class DocumentVersionCreate(BaseModel):
     upload_id: UUID
 
 
+class LanguageVariantLink(BaseModel):
+    """Body of `link_language_variant`: the document whose language group joins the path document's group."""
+
+    document_id: UUID
+
+
 class DocumentListQuery(BaseModel):
     """Filters of `list_documents`; every filter is optional and they combine with AND."""
 
