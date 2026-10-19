@@ -244,6 +244,50 @@
       "label": "Ansicht",
       "library": "Dokumente",
       "trash": "Papierkorb"
+    },
+    "upload": {
+      "open": "Hochladen",
+      "title": "Dokumente hochladen in „{{folder}}“",
+      "description": "Nur PDF-Dateien bis 100 MB. Mehrere Dateien auf einmal sind möglich.",
+      "dropHint": "PDF-Dateien hierher ziehen oder",
+      "chooseFiles": "Dateien auswählen",
+      "fileList": "Ausgewählte Dateien",
+      "titleFor": "Titel für {{file}}",
+      "remove": "{{file}} entfernen",
+      "problem": {
+        "notPdf": "Keine PDF-Datei – wird nicht hochgeladen.",
+        "empty": "Die Datei ist leer – wird nicht hochgeladen.",
+        "tooLarge": "Größer als 100 MB – wird nicht hochgeladen."
+      },
+      "sharedValues": "Für alle Dateien",
+      "docType": "Dokumenttyp",
+      "language": "Sprache",
+      "accessLevel": "Sichtbarkeit",
+      "choose": "Bitte wählen",
+      "docTypeRequired": "Bitte wählen Sie einen Dokumenttyp.",
+      "languageRequired": "Bitte wählen Sie eine Sprache.",
+      "titleRequired": "Jede Datei braucht einen Titel.",
+      "submit_one": "{{count}} Dokument hochladen",
+      "submit_other": "{{count}} Dokumente hochladen",
+      "storeFailed": "Die Datei konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.",
+      "busyHint": "Bitte warten Sie, bis alle Dateien hochgeladen sind.",
+      "finishedHint": "Fertig. Fehlgeschlagene Dateien können Sie erneut versuchen.",
+      "progressList": "Fortschritt der Dateien",
+      "progressFor": "Fortschritt von {{title}}",
+      "phase": {
+        "waiting": "Wartet …",
+        "hashing": "Wird geprüft …",
+        "uploading": "Wird hochgeladen … {{percent}} %",
+        "creating": "Wird angelegt …",
+        "done": "Hochgeladen"
+      },
+      "duplicateHint": "Die gleiche Datei gibt es schon.",
+      "openDuplicate": "Vorhandenes Dokument öffnen",
+      "retryFailed_one": "{{count}} fehlgeschlagene Datei erneut versuchen",
+      "retryFailed_other": "{{count}} fehlgeschlagene Dateien erneut versuchen",
+      "done_one": "{{count}} Dokument hochgeladen.",
+      "done_other": "{{count}} Dokumente hochgeladen.",
+      "partlyDone": "{{done}} hochgeladen, {{failed}} fehlgeschlagen."
     }
   },
   "auth": {

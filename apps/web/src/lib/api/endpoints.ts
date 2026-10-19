@@ -4,6 +4,7 @@ import { client } from "./client";
 import { toApiError } from "./errors";
 import type {
   AcceptInvitationRequest,
+  DocumentCreate,
   DocumentRead,
   FolderCreate,
   FolderRead,
@@ -27,6 +28,8 @@ import type {
   StaffTenantRead,
   StaffTenantUpdate,
   TotpSetupRead,
+  UploadCreate,
+  UploadRead,
   VerifyTotpRequest,
 } from "./types";
 
@@ -195,5 +198,17 @@ export function restoreDocument(tenantId: string, documentId: string): Promise<D
     client.POST("/api/v1/app/tenants/{tenant_id}/documents/{document_id}/restore", {
       params: { path: { ...tenantPath(tenantId), document_id: documentId } },
     }),
+  );
+}
+
+export function createUpload(tenantId: string, body: UploadCreate): Promise<UploadRead> {
+  return unwrap(
+    client.POST("/api/v1/app/tenants/{tenant_id}/uploads", { params: { path: tenantPath(tenantId) }, body }),
+  );
+}
+
+export function createDocument(tenantId: string, body: DocumentCreate): Promise<DocumentRead> {
+  return unwrap(
+    client.POST("/api/v1/app/tenants/{tenant_id}/documents", { params: { path: tenantPath(tenantId) }, body }),
   );
 }

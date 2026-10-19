@@ -244,6 +244,50 @@
       "label": "View",
       "library": "Documents",
       "trash": "Trash"
+    },
+    "upload": {
+      "open": "Upload",
+      "title": "Upload documents to “{{folder}}”",
+      "description": "PDF files only, up to 100 MB. Several files at once are possible.",
+      "dropHint": "Drag PDF files here or",
+      "chooseFiles": "Choose files",
+      "fileList": "Chosen files",
+      "titleFor": "Title for {{file}}",
+      "remove": "Remove {{file}}",
+      "problem": {
+        "notPdf": "Not a PDF file – will not be uploaded.",
+        "empty": "The file is empty – will not be uploaded.",
+        "tooLarge": "Larger than 100 MB – will not be uploaded."
+      },
+      "sharedValues": "For all files",
+      "docType": "Document type",
+      "language": "Language",
+      "accessLevel": "Visibility",
+      "choose": "Please choose",
+      "docTypeRequired": "Please choose a document type.",
+      "languageRequired": "Please choose a language.",
+      "titleRequired": "Every file needs a title.",
+      "submit_one": "Upload {{count}} document",
+      "submit_other": "Upload {{count}} documents",
+      "storeFailed": "The file could not be stored. Please try again.",
+      "busyHint": "Please wait until all files are uploaded.",
+      "finishedHint": "Done. You can retry files that failed.",
+      "progressList": "Progress of the files",
+      "progressFor": "Progress of {{title}}",
+      "phase": {
+        "waiting": "Waiting …",
+        "hashing": "Checking …",
+        "uploading": "Uploading … {{percent}} %",
+        "creating": "Creating …",
+        "done": "Uploaded"
+      },
+      "duplicateHint": "The same file already exists.",
+      "openDuplicate": "Open existing document",
+      "retryFailed_one": "Retry {{count}} failed file",
+      "retryFailed_other": "Retry {{count}} failed files",
+      "done_one": "{{count}} document uploaded.",
+      "done_other": "{{count}} documents uploaded.",
+      "partlyDone": "{{done}} uploaded, {{failed}} failed."
     }
   },
   "auth": {

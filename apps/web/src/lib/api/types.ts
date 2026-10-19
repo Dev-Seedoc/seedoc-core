@@ -6,6 +6,7 @@ type Schemas = components["schemas"];
 export type AcceptInvitationRequest = Schemas["AcceptInvitationRequest"];
 export type AccessLevel = Schemas["AccessLevel"];
 export type DocType = Schemas["DocType"];
+export type DocumentCreate = Schemas["DocumentCreate"];
 export type DocumentListItem = Schemas["DocumentListItem"];
 export type DocumentRead = Schemas["DocumentRead"];
 export type FolderCreate = Schemas["FolderCreate"];
@@ -40,6 +41,8 @@ export type StaffTenantUpdate = Schemas["StaffTenantUpdate"];
 export type TenantMembershipRead = Schemas["TenantMembershipRead"];
 export type TenantStatus = Schemas["TenantStatus"];
 export type TotpSetupRead = Schemas["TotpSetupRead"];
+export type UploadCreate = Schemas["UploadCreate"];
+export type UploadRead = Schemas["UploadRead"];
 export type UserRead = Schemas["UserRead"];
 export type VerifyTotpRequest = Schemas["VerifyTotpRequest"];
 

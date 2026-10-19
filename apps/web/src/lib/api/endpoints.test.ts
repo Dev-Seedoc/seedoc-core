@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  createDocument,
+  createUpload,
   deleteFolder,
   getMe,
   listDocuments,
@@ -118,5 +120,25 @@ describe("endpoints", () => {
       "POST",
       "/api/v1/app/tenants/t-1/documents/d-1/trash",
     ]);
+  });
+
+  it("creates an upload and then the document from it", async () => {
+    const fetchMock = mockFetch(jsonResponse(201, {}));
+    await createUpload("t-1", {
+      file_name: "a.pdf",
+      size_bytes: 5,
+      sha256_hex: "ab".repeat(32),
+      content_type: "application/pdf",
+    });
+    fetchMock.mockResolvedValueOnce(jsonResponse(201, {}));
+    await createDocument("t-1", { upload_id: "u-1", folder_id: "f-1", title: "Anleitung" });
+
+    const [upload, document] = fetchMock.mock.calls.map(([request]) => request);
+    expect([upload?.method, new URL(upload?.url ?? "").pathname]).toEqual(["POST", "/api/v1/app/tenants/t-1/uploads"]);
+    expect([document?.method, new URL(document?.url ?? "").pathname]).toEqual([
+      "POST",
+      "/api/v1/app/tenants/t-1/documents",
+    ]);
+    expect(await document?.json()).toEqual({ upload_id: "u-1", folder_id: "f-1", title: "Anleitung" });
   });
 });

@@ -1,9 +1,11 @@
 // TanStack Query hooks for the document library: spaces and folders (API.md §3.2), documents (§3.3).
 // Names from the "Frontend fn / hook" column. Every hook takes the tenant id from `useCurrentTenant()`.
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type InfiniteData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
+  createDocument,
   createFolder,
+  createUpload,
   createSpace,
   deleteFolder,
   listDocuments,
@@ -15,7 +17,16 @@ import {
   updateSpace,
 } from "../endpoints";
 import { queryKeys } from "../queryKeys";
-import type { FolderCreate, FolderUpdate, ListDocumentsQuery, SpaceCreate, SpaceUpdate } from "../types";
+import type {
+  DocumentCreate,
+  FolderCreate,
+  FolderUpdate,
+  ListDocumentsQuery,
+  Page_DocumentListItem_,
+  SpaceCreate,
+  SpaceUpdate,
+  UploadCreate,
+} from "../types";
 
 // The whole list in one page (`next_cursor` is always null for spaces and folders).
 export function useSpaces(tenantId: string) {
@@ -95,6 +106,18 @@ export function useDeleteFolder(tenantId: string) {
   });
 }
 
+// While a listed document is still being processed by the worker (pending / processing), the list is asked again
+// this often, so "In Bearbeitung" turns into "Bereit" without a reload. It stops once every row is done, and
+// TanStack Query does not poll while the browser tab is in the background.
+export const PROCESSING_REFETCH_MS = 3000;
+
+export function getProcessingRefetchInterval(data: InfiniteData<Page_DocumentListItem_> | undefined): number | false {
+  const isProcessing = data?.pages.some((page) =>
+    page.items.some((item) => item.processing_status === "pending" || item.processing_status === "processing"),
+  );
+  return isProcessing ? PROCESSING_REFETCH_MS : false;
+}
+
 // Documents (API.md §3.3). The list is paged by `next_cursor`; `fetchNextPage()` loads more ("Mehr laden"). `query`
 // holds the filters without `cursor`; every filter combination is its own cache entry.
 export function useDocuments(tenantId: string, query: Omit<ListDocumentsQuery, "cursor">) {
@@ -103,6 +126,7 @@ export function useDocuments(tenantId: string, query: Omit<ListDocumentsQuery, "
     queryFn: ({ pageParam }) => listDocuments(tenantId, { ...query, cursor: pageParam }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
+    refetchInterval: (query) => getProcessingRefetchInterval(query.state.data),
     // DocumentsTable shows load errors with a retry button.
     meta: { errorToast: false },
   });
@@ -147,5 +171,22 @@ export function useRestoreDocument(tenantId: string) {
   return useMutation({
     mutationFn: (documentIds: string[]) => runForEach(documentIds, (id) => restoreDocument(tenantId, id)),
     onSettled: invalidateDocuments,
+  });
+}
+
+// Upload of new documents (API.md §3.3): create_upload → PUT to `upload_url` → create_document. The upload dialog
+// runs many files and reports each one itself (no global toast); it reloads the document lists once at the end,
+// so useCreateDocument does not reload after every single file.
+export function useCreateUpload(tenantId: string) {
+  return useMutation({
+    mutationFn: (body: UploadCreate) => createUpload(tenantId, body),
+    meta: { errorToast: false },
+  });
+}
+
+export function useCreateDocument(tenantId: string) {
+  return useMutation({
+    mutationFn: (body: DocumentCreate) => createDocument(tenantId, body),
+    meta: { errorToast: false },
   });
 }
