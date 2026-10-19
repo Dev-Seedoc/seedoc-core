@@ -288,6 +288,39 @@
       "done_one": "{{count}} Dokument hochgeladen.",
       "done_other": "{{count}} Dokumente hochgeladen.",
       "partlyDone": "{{done}} hochgeladen, {{failed}} fehlgeschlagen."
+    },
+    "detail": {
+      "crumb": "Dokument",
+      "back": "Zurück zu den Dokumenten",
+      "notFoundTitle": "Dokument nicht gefunden",
+      "notFoundDescription": "Das Dokument existiert nicht oder Sie haben keinen Zugriff darauf.",
+      "loadFailed": "Das Dokument konnte nicht geladen werden.",
+      "trashed": "Im Papierkorb",
+      "trashedBanner": "Dieses Dokument liegt seit {{date}} im Papierkorb. Stellen Sie es wieder her, um es zu bearbeiten.",
+      "facts": "Angaben zum Dokument",
+      "versionsCount": "Versionen",
+      "releasedIn": "In Freigaben"
+    },
+    "metadata": {
+      "title": "Angaben bearbeiten",
+      "titleLabel": "Titel",
+      "titleRequired": "Bitte geben Sie einen Titel ein.",
+      "titleTooLong": "Der Titel darf höchstens 200 Zeichen lang sein.",
+      "saved": "Änderungen gespeichert.",
+      "languageTaken": "In der Sprachgruppe dieses Dokuments gibt es schon ein Dokument in dieser Sprache."
+    },
+    "versions": {
+      "title": "Versionen",
+      "loadFailed": "Die Versionen konnten nicht geladen werden.",
+      "version": "Version",
+      "file": "Datei",
+      "size": "Größe",
+      "pages": "Seiten",
+      "uploadedAt": "Hochgeladen",
+      "current": "Aktuell",
+      "downloadVersion": "Version {{no}} herunterladen",
+      "upload": "Neue Version hochladen",
+      "uploaded": "Version {{no}} hochgeladen. Sie ist jetzt die aktuelle Version."
     }
   },
   "auth": {

@@ -13,7 +13,9 @@ import {
   useDeleteFolder,
   useDocuments,
   useFolders,
+  useDocument,
   useTrashDocument,
+  useUpdateDocument,
 } from "./documents";
 
 const TENANT_ID = "00000000-0000-4000-8000-00000000000a";
@@ -202,5 +204,41 @@ describe("document hooks", () => {
     // Nothing left to wait for: no further requests.
     await new Promise((resolve) => setTimeout(resolve, PROCESSING_REFETCH_MS + 500));
     expect(listCalls()).toBe(callsWhenReady);
+  });
+
+  it("refreshes the document and the lists after an update", async () => {
+    let title = "Alt";
+    const fetchMock = stubApi({
+      [`GET /api/v1/app/tenants/${TENANT_ID}/documents/d-1`]: () => ({
+        status: 200,
+        body: { ...documentItem("d-1"), title },
+      }),
+      [DOCUMENTS]: () => ({ status: 200, body: { items: [{ ...documentItem("d-1"), title }], next_cursor: null } }),
+      [`PATCH /api/v1/app/tenants/${TENANT_ID}/documents/d-1`]: () => {
+        title = "Neu";
+        return { status: 200, body: {} };
+      },
+    });
+    const { result } = renderHook(
+      () => ({
+        detail: useDocument(TENANT_ID, "d-1"),
+        list: useDocuments(TENANT_ID, {}),
+        update: useUpdateDocument(TENANT_ID, "d-1"),
+      }),
+      { wrapper },
+    );
+    await waitFor(() => {
+      expect(result.current.detail.data?.title).toBe("Alt");
+    });
+
+    await act(() => result.current.update.mutateAsync({ title: "Neu" }));
+
+    await waitFor(() => {
+      expect(result.current.detail.data?.title).toBe("Neu");
+    });
+    await waitFor(() => {
+      expect(result.current.list.data?.pages[0]?.items[0]?.title).toBe("Neu");
+    });
+    expect(fetchMock.mock.calls.some(([request]) => request.method === "PATCH")).toBe(true);
   });
 });

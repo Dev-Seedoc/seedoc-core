@@ -288,6 +288,39 @@
       "done_one": "{{count}} document uploaded.",
       "done_other": "{{count}} documents uploaded.",
       "partlyDone": "{{done}} uploaded, {{failed}} failed."
+    },
+    "detail": {
+      "crumb": "Document",
+      "back": "Back to documents",
+      "notFoundTitle": "Document not found",
+      "notFoundDescription": "The document does not exist or you have no access to it.",
+      "loadFailed": "The document could not be loaded.",
+      "trashed": "In the trash",
+      "trashedBanner": "This document has been in the trash since {{date}}. Restore it to edit it.",
+      "facts": "Document details",
+      "versionsCount": "Versions",
+      "releasedIn": "In releases"
+    },
+    "metadata": {
+      "title": "Edit details",
+      "titleLabel": "Title",
+      "titleRequired": "Please enter a title.",
+      "titleTooLong": "The title may be at most 200 characters long.",
+      "saved": "Changes saved.",
+      "languageTaken": "The language group of this document already has a document in this language."
+    },
+    "versions": {
+      "title": "Versions",
+      "loadFailed": "The versions could not be loaded.",
+      "version": "Version",
+      "file": "File",
+      "size": "Size",
+      "pages": "Pages",
+      "uploadedAt": "Uploaded",
+      "current": "Current",
+      "downloadVersion": "Download version {{no}}",
+      "upload": "Upload new version",
+      "uploaded": "Version {{no}} uploaded. It is now the current version."
     }
   },
   "auth": {

@@ -9,12 +9,17 @@ export type DocType = Schemas["DocType"];
 export type DocumentCreate = Schemas["DocumentCreate"];
 export type DocumentListItem = Schemas["DocumentListItem"];
 export type DocumentRead = Schemas["DocumentRead"];
+export type DocumentUpdate = Schemas["DocumentUpdate"];
+export type DocumentVersionCreate = Schemas["DocumentVersionCreate"];
+export type DocumentVersionRead = Schemas["DocumentVersionRead"];
 export type FolderCreate = Schemas["FolderCreate"];
 export type FolderRead = Schemas["FolderRead"];
 export type FolderUpdate = Schemas["FolderUpdate"];
 export type HealthRead = Schemas["HealthRead"];
 export type InvitationKind = Schemas["InvitationKind"];
 export type InvitationPreview = Schemas["InvitationPreview"];
+export type LanguageVariantLink = Schemas["LanguageVariantLink"];
+export type LanguageVariantRead = Schemas["LanguageVariantRead"];
 export type LoginRequest = Schemas["LoginRequest"];
 export type MemberRole = Schemas["MemberRole"];
 export type MeRead = Schemas["MeRead"];
@@ -22,6 +27,7 @@ export type OperatorOrgMembershipRead = Schemas["OperatorOrgMembershipRead"];
 export type OperatorRole = Schemas["OperatorRole"];
 // Page[...] (NAMING §4) under the names FastAPI generates for them.
 export type Page_DocumentListItem_ = Schemas["Page_DocumentListItem_"];
+export type Page_DocumentVersionRead_ = Schemas["Page_DocumentVersionRead_"];
 export type Page_FolderRead_ = Schemas["Page_FolderRead_"];
 export type Page_SpaceRead_ = Schemas["Page_SpaceRead_"];
 export type Page_StaffTenantListItem_ = Schemas["Page_StaffTenantListItem_"];
@@ -45,6 +51,7 @@ export type UploadCreate = Schemas["UploadCreate"];
 export type UploadRead = Schemas["UploadRead"];
 export type UserRead = Schemas["UserRead"];
 export type VerifyTotpRequest = Schemas["VerifyTotpRequest"];
+export type VersionFileUrlRead = Schemas["VersionFileUrlRead"];
 
 // Query parameters of list_documents (API.md §3.3), taken from the generated operation; not a schema of its own.
 export type ListDocumentsQuery = NonNullable<operations["list_documents"]["parameters"]["query"]>;

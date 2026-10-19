@@ -2,13 +2,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { getErrorMessage } from "@/lib/api/errors";
-import { useCreateDocument, useCreateUpload } from "@/lib/api/hooks/documents";
+import { useCreateDocument } from "@/lib/api/hooks/documents";
 import { queryKeys } from "@/lib/api/queryKeys";
 import type { AccessLevel, DocType, DocumentRead } from "@/lib/api/types";
-import { PDF_CONTENT_TYPE } from "@/lib/pdfCheck";
-import { putWithProgress, UploadFailedError } from "@/lib/putWithProgress";
-import { sha256Hex } from "@/lib/sha256";
+
+import { getUploadErrorMessage, usePdfUpload } from "./usePdfUpload";
 
 // Uploads run side by side up to this many: quicker than one by one, without flooding the browser or the store.
 const PARALLEL_UPLOADS = 3;
@@ -46,7 +44,7 @@ export function isUploadBusy(job: UploadJob): boolean {
 export function useUploadQueue(tenantId: string) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const createUpload = useCreateUpload(tenantId);
+  const uploadPdf = usePdfUpload(tenantId);
   const createDocument = useCreateDocument(tenantId);
   const [jobs, setJobs] = useState<UploadJob[]>([]);
   // The values of the last start, so "Erneut versuchen" uploads failed files the same way.
@@ -59,24 +57,12 @@ export function useUploadQueue(tenantId: string) {
   // Returns how the file ended: "done" or "failed".
   async function runJob(job: UploadJob, values: UploadValues): Promise<UploadPhase> {
     try {
-      setPhase(job.key, { name: "hashing" });
-      const sha256 = await sha256Hex(job.file);
-      const upload = await createUpload.mutateAsync({
-        file_name: job.file.name,
-        size_bytes: job.file.size,
-        sha256_hex: sha256,
-        content_type: PDF_CONTENT_TYPE,
-      });
-      setPhase(job.key, { name: "uploading", progress: 0 });
-      await putWithProgress(upload.upload_url, job.file, {
-        contentType: PDF_CONTENT_TYPE,
-        onProgress: (progress) => {
-          setPhase(job.key, { name: "uploading", progress });
-        },
+      const uploadId = await uploadPdf(job.file, (step) => {
+        setPhase(job.key, step);
       });
       setPhase(job.key, { name: "creating" });
       const document = await createDocument.mutateAsync({
-        upload_id: upload.upload_id,
+        upload_id: uploadId,
         folder_id: values.folderId,
         title: job.title.trim(),
         doc_type: values.docType,
@@ -87,9 +73,7 @@ export function useUploadQueue(tenantId: string) {
       setPhase(job.key, done);
       return done;
     } catch (error) {
-      // The store answers in its own format (no API error code): one plain message for every store problem.
-      const message = error instanceof UploadFailedError ? t("documents.upload.storeFailed") : getErrorMessage(error);
-      const failed = { name: "failed", message } as const;
+      const failed = { name: "failed", message: getUploadErrorMessage(error, t) } as const;
       setPhase(job.key, failed);
       return failed;
     }

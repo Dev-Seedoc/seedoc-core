@@ -4,21 +4,32 @@ import { type InfiniteData, useInfiniteQuery, useMutation, useQuery, useQueryCli
 
 import {
   createDocument,
+  createDocumentVersion,
   createFolder,
   createUpload,
   createSpace,
   deleteFolder,
+  getDocument,
+  linkLanguageVariant,
   listDocuments,
+  listDocumentVersions,
   listFolders,
   listSpaces,
   restoreDocument,
   trashDocument,
+  unlinkLanguageVariant,
+  updateDocument,
   updateFolder,
   updateSpace,
 } from "../endpoints";
 import { queryKeys } from "../queryKeys";
 import type {
   DocumentCreate,
+  DocumentRead,
+  DocumentUpdate,
+  DocumentVersionCreate,
+  DocumentVersionRead,
+  LanguageVariantLink,
   FolderCreate,
   FolderUpdate,
   ListDocumentsQuery,
@@ -111,11 +122,13 @@ export function useDeleteFolder(tenantId: string) {
 // TanStack Query does not poll while the browser tab is in the background.
 export const PROCESSING_REFETCH_MS = 3000;
 
+function isProcessing(status: DocumentRead["processing_status"]): boolean {
+  return status === "pending" || status === "processing";
+}
+
 export function getProcessingRefetchInterval(data: InfiniteData<Page_DocumentListItem_> | undefined): number | false {
-  const isProcessing = data?.pages.some((page) =>
-    page.items.some((item) => item.processing_status === "pending" || item.processing_status === "processing"),
-  );
-  return isProcessing ? PROCESSING_REFETCH_MS : false;
+  const anyProcessing = data?.pages.some((page) => page.items.some((item) => isProcessing(item.processing_status)));
+  return anyProcessing ? PROCESSING_REFETCH_MS : false;
 }
 
 // Documents (API.md §3.3). The list is paged by `next_cursor`; `fetchNextPage()` loads more ("Mehr laden"). `query`
@@ -151,8 +164,8 @@ async function runForEach(
   };
 }
 
-// Trash and restore change which list a document belongs to: every document list is reloaded once the whole batch
-// is done (not once per document). One document is a list of one.
+// Reloads every document query of the tenant (lists and details: one prefix). Trash and restore call it once the
+// whole batch is done, not once per document.
 function useInvalidateDocuments(tenantId: string) {
   const queryClient = useQueryClient();
   return () => queryClient.invalidateQueries({ queryKey: queryKeys.tenants.allDocuments(tenantId) });
@@ -188,5 +201,71 @@ export function useCreateDocument(tenantId: string) {
   return useMutation({
     mutationFn: (body: DocumentCreate) => createDocument(tenantId, body),
     meta: { errorToast: false },
+  });
+}
+
+// One document (DocumentDetailPage). Polled like the list while its current version is processed.
+export function useDocument(tenantId: string, documentId: string) {
+  return useQuery({
+    queryKey: queryKeys.tenants.document(tenantId, documentId),
+    queryFn: () => getDocument(tenantId, documentId),
+    refetchInterval: (query) =>
+      isProcessing(query.state.data?.processing_status ?? null) ? PROCESSING_REFETCH_MS : false,
+    // The page shows "not found" and load errors itself.
+    meta: { errorToast: false },
+  });
+}
+
+// Every version, newest first (never paged); polled while one is processed.
+export function useDocumentVersions(tenantId: string, documentId: string) {
+  return useQuery({
+    queryKey: queryKeys.tenants.documentVersions(tenantId, documentId),
+    queryFn: () => listDocumentVersions(tenantId, documentId),
+    select: (page) => page.items,
+    refetchInterval: (query) =>
+      query.state.data?.items.some((version: DocumentVersionRead) => isProcessing(version.processing_status))
+        ? PROCESSING_REFETCH_MS
+        : false,
+    meta: { errorToast: false },
+  });
+}
+
+// Changes to one document also change lists (title, type …) and other documents (a language group), so the hooks
+// below reload every document query of the tenant, the detail included (useInvalidateDocuments).
+// The forms and dialogs of DocumentDetailPage show errors in place, so none of these use the global toast.
+
+export function useUpdateDocument(tenantId: string, documentId: string) {
+  const invalidate = useInvalidateDocuments(tenantId);
+  return useMutation({
+    mutationFn: (body: DocumentUpdate) => updateDocument(tenantId, documentId, body),
+    meta: { errorToast: false },
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateDocumentVersion(tenantId: string, documentId: string) {
+  const invalidate = useInvalidateDocuments(tenantId);
+  return useMutation({
+    mutationFn: (body: DocumentVersionCreate) => createDocumentVersion(tenantId, documentId, body),
+    meta: { errorToast: false },
+    onSuccess: invalidate,
+  });
+}
+
+export function useLinkLanguageVariant(tenantId: string, documentId: string) {
+  const invalidate = useInvalidateDocuments(tenantId);
+  return useMutation({
+    mutationFn: (body: LanguageVariantLink) => linkLanguageVariant(tenantId, documentId, body),
+    meta: { errorToast: false },
+    onSuccess: invalidate,
+  });
+}
+
+export function useUnlinkLanguageVariant(tenantId: string, documentId: string) {
+  const invalidate = useInvalidateDocuments(tenantId);
+  return useMutation({
+    mutationFn: (variantDocumentId: string) => unlinkLanguageVariant(tenantId, documentId, variantDocumentId),
+    meta: { errorToast: false },
+    onSuccess: invalidate,
   });
 }

@@ -5,11 +5,13 @@ import {
   createUpload,
   deleteFolder,
   getMe,
+  getVersionFileUrl,
   listDocuments,
   listFolders,
   login,
   logout,
   trashDocument,
+  unlinkLanguageVariant,
   updateFolder,
 } from "./endpoints";
 import { ApiError } from "./errors";
@@ -140,5 +142,22 @@ describe("endpoints", () => {
       "/api/v1/app/tenants/t-1/documents",
     ]);
     expect(await document?.json()).toEqual({ upload_id: "u-1", folder_id: "f-1", title: "Anleitung" });
+  });
+
+  it("builds the version file and language variant URLs from all ids", async () => {
+    const fetchMock = mockFetch(jsonResponse(200, { url: "https://s3.test/x", expires_at: "" }));
+    await getVersionFileUrl("t-1", "d-1", "v-1");
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, {}));
+    await unlinkLanguageVariant("t-1", "d-1", "d-2");
+
+    const [file, unlink] = fetchMock.mock.calls.map(([request]) => request);
+    expect([file?.method, new URL(file?.url ?? "").pathname]).toEqual([
+      "GET",
+      "/api/v1/app/tenants/t-1/documents/d-1/versions/v-1/file",
+    ]);
+    expect([unlink?.method, new URL(unlink?.url ?? "").pathname]).toEqual([
+      "DELETE",
+      "/api/v1/app/tenants/t-1/documents/d-1/language-variants/d-2",
+    ]);
   });
 });

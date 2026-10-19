@@ -21,15 +21,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useDocuments } from "@/lib/api/hooks/documents";
 import type { DocumentListItem, ListDocumentsQuery } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/formatDate";
-import { SUPPORTED_LANGUAGES } from "@/lib/languages";
+import { getLanguageLabel } from "@/lib/languages";
 
 import type { DocumentColumn } from "./documentColumns";
-
-// A language code from the API as its German name; an unknown code is shown as it is.
-function languageLabel(code: string, t: TFunction): string {
-  const known = SUPPORTED_LANGUAGES.find((language) => language === code);
-  return known ? t(`common.language.${known}`) : code;
-}
 
 const column = createColumnHelper<DocumentListItem>();
 const EMPTY_CELL = <span className="text-muted-foreground">—</span>;
@@ -79,7 +73,7 @@ function createColumns(t: TFunction, renderRowAction?: (document: DocumentListIt
     column.accessor("language", {
       id: "language",
       header: t("documents.table.language"),
-      cell: ({ getValue }) => languageLabel(getValue(), t),
+      cell: ({ getValue }) => getLanguageLabel(getValue(), t),
     }),
     column.accessor("access_level", {
       id: "accessLevel",
