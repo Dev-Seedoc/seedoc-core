@@ -93,12 +93,15 @@ jobs:
             e2e-staff@e2e.example.com "$password" "$totp_secret" > apps/web/e2e/.env
       - run: make migrate
       - run: make seed ARGS=--e2e-staff
-      - name: Start API and web app
+      - name: Start API, worker and web app
         run: |
           # `setsid` makes each server its own process-group leader, so the stop step can take its children
           # (uvicorn, esbuild) with it instead of leaving them for the runner to reap as orphans.
           (cd apps/api && setsid nohup uv run uvicorn seedoc.main:create_app --factory --port 8000 \
             > "$RUNNER_TEMP/api.log" 2>&1 & echo $! > "$RUNNER_TEMP/api.pid")
+          # The worker sends every mail (send_email job), so the invitation never reaches Mailpit without it.
+          (cd apps/api && setsid nohup uv run python -m seedoc.jobs.worker \
+            > "$RUNNER_TEMP/worker.log" 2>&1 & echo $! > "$RUNNER_TEMP/worker.pid")
           setsid nohup pnpm --dir apps/web dev > "$RUNNER_TEMP/web.log" 2>&1 &
           echo $! > "$RUNNER_TEMP/web.pid"
           # Through the Vite proxy, so this waits for both.
@@ -108,7 +111,7 @@ jobs:
       - run: make e2e
       - name: Server logs
         if: failure()
-        run: tail -n 200 "$RUNNER_TEMP/api.log" "$RUNNER_TEMP/web.log"
+        run: tail -n 200 "$RUNNER_TEMP/api.log" "$RUNNER_TEMP/worker.log" "$RUNNER_TEMP/web.log"
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -118,21 +121,21 @@ jobs:
             apps/web/playwright-report/
           retention-days: 7
       # Runs after the logs and the artifact are collected, so a failed run still reports why.
-      - name: Stop API and web app
+      - name: Stop API, worker and web app
         if: always()
         run: |
           # Kill each process group (setsid made the server its leader), then fall back to the single PID in case
           # setsid had to fork. The explicit pkill is the safety net that must succeed: nothing may still hold the
           # uv cache when the setup-uv post step runs.
-          for name in api web; do
+          for name in api worker web; do
             pid_file="$RUNNER_TEMP/$name.pid"
             [ -f "$pid_file" ] || continue
             pid="$(cat "$pid_file")"
             kill -- "-$pid" 2>/dev/null || kill "$pid" 2>/dev/null || true
           done
-          pkill -f "uvicorn seedoc.main:create_app" 2>/dev/null || true
+          pkill -f "uvicorn seedoc.main:create_app|seedoc.jobs.worker" 2>/dev/null || true
           for _ in $(seq 1 20); do
-            pgrep -f "uvicorn seedoc.main:create_app" > /dev/null || break
+            pgrep -f "uvicorn seedoc.main:create_app|seedoc.jobs.worker" > /dev/null || break
             sleep 1
           done
 
