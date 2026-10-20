@@ -9,12 +9,13 @@ import structlog
 from seedoc.config import get_settings
 from seedoc.jobs.app import close_job_app, open_job_app
 from seedoc.jobs.mail import MAIL_QUEUE
+from seedoc.jobs.maintenance import MAINTENANCE_QUEUE
 from seedoc.jobs.processing import PROCESSING_QUEUE
 from seedoc.main import configure_logging
 
 log = structlog.get_logger()
 
-QUEUES = [PROCESSING_QUEUE, MAIL_QUEUE]
+QUEUES = [PROCESSING_QUEUE, MAIL_QUEUE, MAINTENANCE_QUEUE]
 CONCURRENCY = 2  # PDFs are parsed in threads; two at a time keep a small server responsive
 
 

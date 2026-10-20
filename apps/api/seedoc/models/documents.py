@@ -94,7 +94,7 @@ class Document(Base):
     tenant_id: Mapped[UUID] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
     folder_id: Mapped[UUID] = mapped_column(ForeignKey("folders.id"), index=True)
     group_id: Mapped[UUID] = mapped_column(server_default=func.gen_random_uuid(), index=True)  # language variants
-    machine_id: Mapped[UUID | None] = mapped_column(index=True)  # FK added in 0003 (machines)
+    machine_id: Mapped[UUID | None] = mapped_column(ForeignKey("machines.id"), index=True)  # machine-specific
     title: Mapped[str]
     doc_type: Mapped[DocType] = mapped_column(pg_enum(DocType, name="doc_type", create_type=False))
     language: Mapped[str]

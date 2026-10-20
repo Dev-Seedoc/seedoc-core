@@ -38,7 +38,7 @@ from seedoc.schemas.documents import (
     LanguageVariantRead,
     VersionFileUrlRead,
 )
-from seedoc.services.library import PATH_SEPARATOR, build_folder_paths, get_folder
+from seedoc.services.library import PATH_SEPARATOR, build_folder_paths, get_folder, get_sort_key
 from seedoc.storage.s3 import copy_object, delete_object, get_version_key, presign_get, read_object_digest
 
 PDF_MAGIC = b"%PDF-"
@@ -423,6 +423,24 @@ async def _get_folder_paths(db: AsyncSession, tenant_id: UUID) -> dict[UUID, str
     space_names = {row.id: row.name for row in rows}
     paths = build_folder_paths(folders)
     return {folder.id: space_names[folder.space_id] + PATH_SEPARATOR + paths[folder.id] for folder in folders}
+
+
+async def list_document_items(db: AsyncSession, tenant_id: UUID, document_ids: list[UUID]) -> list[DocumentListItem]:
+    """`DocumentListItem`s of the given documents of the tenant (trashed ones too; the caller filters), sorted by
+    title (DIN 5007-1) and language — for product document sets and machine documents. Call inside the caller's
+    tenant transaction; ids of other tenants are silently left out."""
+    if not document_ids:
+        return []
+    rows = (
+        await db.execute(
+            select(Document, DocumentVersion)
+            .outerjoin(DocumentVersion, DocumentVersion.id == Document.current_version_id)
+            .where(Document.tenant_id == tenant_id, Document.id.in_(document_ids))
+        )
+    ).all()
+    folder_paths = await _get_folder_paths(db, tenant_id)
+    items = [_to_list_item(document, version, folder_paths) for document, version in rows]
+    return sorted(items, key=lambda item: (get_sort_key(item.title), item.language, str(item.id)))
 
 
 def _to_list_item(

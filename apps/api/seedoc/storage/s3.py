@@ -145,6 +145,25 @@ async def delete_object(key: str) -> None:
     await asyncio.to_thread(lambda: client.delete_object(Bucket=bucket, Key=key))
 
 
+async def purge_object(key: str) -> None:
+    """Delete `key` with every stored version and delete marker (the buckets keep versions, so a plain delete would
+    leave the bytes behind). For hard deletes only (`purge_trash`)."""
+    client, bucket = get_s3_client(), get_settings().s3_bucket
+
+    def purge() -> None:
+        listing = client.list_object_versions(Bucket=bucket, Prefix=key)
+        entries = [*listing.get("Versions", []), *listing.get("DeleteMarkers", [])]
+        objects = [
+            {"Key": key, "VersionId": entry["VersionId"]}
+            for entry in entries
+            if entry.get("Key") == key and "VersionId" in entry
+        ]
+        if objects:
+            client.delete_objects(Bucket=bucket, Delete={"Objects": objects, "Quiet": True})  # pyright: ignore[reportArgumentType]
+
+    await asyncio.to_thread(purge)
+
+
 def _get_content_disposition(file_name: str) -> str:
     """`attachment` with an ASCII fallback and the UTF-8 name (RFC 6266), so umlauts survive in every browser."""
     ascii_name = file_name.encode("ascii", "replace").decode().replace("?", "_").replace('"', "_")

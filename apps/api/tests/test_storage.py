@@ -1,4 +1,4 @@
-"""`storage/s3.py` against a real S3 server (RustFS): keys, put, presigned download, delete."""
+"""`storage/s3.py` against a real S3 server (RustFS): keys, put, presigned download, delete, purge."""
 
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
@@ -6,7 +6,16 @@ from uuid import uuid4
 import httpx
 import pytest
 
-from seedoc.storage.s3 import delete_object, get_upload_key, get_version_key, presign_get, put_object
+from seedoc.config import get_settings
+from seedoc.storage.s3 import (
+    delete_object,
+    get_s3_client,
+    get_upload_key,
+    get_version_key,
+    presign_get,
+    purge_object,
+    put_object,
+)
 
 pytestmark = pytest.mark.usefixtures("s3")
 
@@ -54,3 +63,21 @@ async def test_delete_object_removes_it_and_tolerates_missing_keys() -> None:
     url, _ = presign_get(key, "x.pdf")
     async with httpx.AsyncClient() as browser:
         assert (await browser.get(url)).status_code == 404
+
+
+async def test_purge_object_removes_every_version_of_the_key_only() -> None:
+    client, bucket = get_s3_client(), get_settings().s3_bucket
+    client.put_bucket_versioning(Bucket=bucket, VersioningConfiguration={"Status": "Enabled"})  # as on staging
+    prefix = f"tenants/{uuid4()}/versions/"
+    key, neighbour = f"{prefix}{uuid4()}.pdf", f"{prefix}{uuid4()}.pdf"
+    await put_object(key, b"%PDF-1.7 first", "application/pdf")
+    await put_object(key, b"%PDF-1.7 second", "application/pdf")
+    await delete_object(key)  # only a delete marker: both versions are still stored
+    await put_object(neighbour, b"%PDF-1.7 other", "application/pdf")
+
+    await purge_object(key)
+
+    listing = client.list_object_versions(Bucket=bucket, Prefix=prefix)
+    remaining = [entry.get("Key") for entry in [*listing.get("Versions", []), *listing.get("DeleteMarkers", [])]]
+    assert remaining == [neighbour]
+    await purge_object(key)  # nothing left: not an error
