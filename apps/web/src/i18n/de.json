@@ -121,6 +121,11 @@
     "placeholder": {
       "title": "Dieser Bereich ist in Arbeit",
       "description": "Diese Seite wird in Kürze verfügbar sein."
+    },
+    "errorPage": {
+      "title": "Etwas ist schiefgelaufen",
+      "description": "Diese Seite konnte nicht angezeigt werden. Bitte laden Sie die Seite neu. Falls Sie die Seite automatisch übersetzen lassen, schalten Sie die Übersetzung bitte aus.",
+      "reload": "Neu laden"
     }
   },
   "documents": {

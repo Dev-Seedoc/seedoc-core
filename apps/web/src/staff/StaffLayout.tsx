@@ -54,8 +54,8 @@ export function StaffLayout() {
 
   return (
     <div className="flex min-h-svh flex-col">
-      <header className="bg-background flex h-14 shrink-0 items-center justify-between gap-4 border-b px-6">
-        <div className="flex items-center gap-6">
+      <header className="bg-background flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b px-6 py-2">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
           <span className="text-lg font-semibold tracking-tight">
             {t("common.appName")} <span className="text-muted-foreground font-normal">· {t("staff.layout.title")}</span>
           </span>

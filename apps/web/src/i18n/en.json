@@ -121,6 +121,11 @@
     "placeholder": {
       "title": "This area is under construction",
       "description": "This page will be available soon."
+    },
+    "errorPage": {
+      "title": "Something went wrong",
+      "description": "This page could not be shown. Please reload the page. If your browser translates the page, please turn translation off.",
+      "reload": "Reload"
     }
   },
   "documents": {
