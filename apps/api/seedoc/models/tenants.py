@@ -67,7 +67,7 @@ class Invitation(Base):
     kind: Mapped[InvitationKind] = mapped_column(pg_enum(InvitationKind, name="invitation_kind", create_type=False))
     email: Mapped[str] = mapped_column(CITEXT)
     role: Mapped[MemberRole | None] = mapped_column(pg_enum(MemberRole, name="member_role", create_type=False))
-    customer_id: Mapped[UUID | None]  # FK added later in M2
+    customer_id: Mapped[UUID | None] = mapped_column(ForeignKey("customers.id"), index=True)  # kind = operator
     operator_org_id: Mapped[UUID | None] = mapped_column(ForeignKey("operator_orgs.id"))
     token_hash: Mapped[bytes] = mapped_column(unique=True)
     expires_at: Mapped[datetime]

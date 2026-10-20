@@ -13,6 +13,7 @@ from starlette.requests import Request
 from seedoc.config import get_settings
 from seedoc.deps import get_ctx
 from seedoc.models.audit import AuditEvent
+from seedoc.models.deliveries import Customer
 from seedoc.models.operators import OperatorMember, OperatorOrg, OperatorRole
 from seedoc.models.tenants import Invitation, InvitationKind, MemberRole, Tenant, TenantMember
 from seedoc.models.users import PasswordResetToken, User, UserSession
@@ -551,9 +552,10 @@ async def test_operator_invitation_first_member_is_admin(
 ) -> None:
     tenant = await make_tenant()
     org = OperatorOrg(name="Betreiber KG")
-    admin_db.add(org)
+    customer = Customer(tenant_id=tenant.id, name="Muster AG")  # an operator invitation names the customer
+    admin_db.add_all([org, customer])
     await admin_db.commit()
-    operator = {"kind": InvitationKind.OPERATOR, "role": None, "operator_org_id": org.id, "customer_id": uuid4()}
+    operator = {"kind": InvitationKind.OPERATOR, "role": None, "operator_org_id": org.id, "customer_id": customer.id}
     _, first_token = await _invitation(admin_db, tenant, "op1@example.com", **operator)
     _, second_token = await _invitation(admin_db, tenant, "op2@example.com", **operator)
 

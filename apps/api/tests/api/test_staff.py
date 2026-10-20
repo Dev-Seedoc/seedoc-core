@@ -215,13 +215,19 @@ async def test_get_tenant_shows_members_and_counts(
     await make_member(tenant, user, MemberRole.ADMIN)
 
     detail = await staff.http.get(f"/api/v1/staff/tenants/{tenant.id}")
-    listing = await staff.http.get("/api/v1/staff/tenants", params={"limit": "200"})
+    listed: list[dict[str, Any]] = []
+    cursor: str | None = ""
+    while cursor is not None:  # the session database holds every test's tenants, so page through all of them
+        params = {"limit": "200", **({"cursor": cursor} if cursor else {})}
+        page = (await staff.http.get("/api/v1/staff/tenants", params=params)).json()
+        listed += page["items"]
+        cursor = page["next_cursor"]
 
     assert detail.status_code == 200
     assert detail.json()["members"] == [
         {"user_id": str(user.id), "email": user.email, "full_name": user.full_name, "role": "admin"}
     ]
-    item = next(i for i in listing.json()["items"] if i["id"] == str(tenant.id))
+    [item] = [i for i in listed if i["id"] == str(tenant.id)]
     assert item["member_count"] == 1
 
 
