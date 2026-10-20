@@ -12,7 +12,8 @@ import asyncio
 import procrastinate
 
 app = procrastinate.App(
-    connector=procrastinate.PsycopgConnector(), import_paths=["seedoc.jobs.mail", "seedoc.jobs.processing"]
+    connector=procrastinate.PsycopgConnector(),
+    import_paths=["seedoc.jobs.mail", "seedoc.jobs.maintenance", "seedoc.jobs.processing"],
 )
 
 # The event loop the app was opened on: a pool belongs to one loop (each test has its own).
