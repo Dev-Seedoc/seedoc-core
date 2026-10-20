@@ -471,6 +471,111 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/app/tenants/{tenant_id}/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Products */
+        get: operations["list_products"];
+        put?: never;
+        /** Create Product */
+        post: operations["create_product"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/app/tenants/{tenant_id}/products/{product_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Product */
+        get: operations["get_product"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Product */
+        patch: operations["update_product"];
+        trace?: never;
+    };
+    "/api/v1/app/tenants/{tenant_id}/products/{product_id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Product Documents */
+        get: operations["list_product_documents"];
+        /** Set Product Documents */
+        put: operations["set_product_documents"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/app/tenants/{tenant_id}/products/{product_id}/languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Product Language Matrix */
+        get: operations["get_product_language_matrix"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/app/tenants/{tenant_id}/products/{product_id}/releases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Product Releases */
+        get: operations["list_product_releases"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/app/tenants/{tenant_id}/products/{product_id}/releases/{release_no}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Product Release */
+        get: operations["get_product_release"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -764,6 +869,43 @@ export interface components {
             /** Has Account */
             has_account: boolean;
         };
+        /** LanguageMatrixCell */
+        LanguageMatrixCell: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "present" | "missing" | "waived";
+            /** Document Id */
+            document_id?: string | null;
+            /** Waiver Reason */
+            waiver_reason?: string | null;
+        };
+        /** LanguageMatrixRead */
+        LanguageMatrixRead: {
+            /** Languages */
+            languages: string[];
+            /** Rows */
+            rows: components["schemas"]["LanguageMatrixRow"][];
+        };
+        /**
+         * LanguageMatrixRow
+         * @description One language group: `title` / `doc_type` of its document in the first required language it has.
+         */
+        LanguageMatrixRow: {
+            /**
+             * Group Id
+             * Format: uuid
+             */
+            group_id: string;
+            /** Title */
+            title: string;
+            doc_type: components["schemas"]["DocType"];
+            /** Cells */
+            cells: {
+                [key: string]: components["schemas"]["LanguageMatrixCell"];
+            };
+        };
         /**
          * LanguageVariantLink
          * @description Body of `link_language_variant`: the document whose language group joins the path document's group.
@@ -850,6 +992,20 @@ export interface components {
             /** Next Cursor */
             next_cursor: string | null;
         };
+        /** Page[ProductRead] */
+        Page_ProductRead_: {
+            /** Items */
+            items: components["schemas"]["ProductRead"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** Page[ProductReleaseRead] */
+        Page_ProductReleaseRead_: {
+            /** Items */
+            items: components["schemas"]["ProductReleaseRead"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
         /** Page[SpaceRead] */
         Page_SpaceRead_: {
             /** Items */
@@ -888,6 +1044,137 @@ export interface components {
          * @enum {string}
          */
         ProcessingStatus: "pending" | "processing" | "ready" | "failed";
+        /** ProductCreate */
+        ProductCreate: {
+            /** Name */
+            name: string;
+            /** Space Id */
+            space_id?: string | null;
+            /** Required Languages */
+            required_languages?: string[];
+        };
+        /**
+         * ProductDocumentsSet
+         * @description Body of `set_product_documents`: the whole new set (duplicates are ignored).
+         */
+        ProductDocumentsSet: {
+            /** Document Ids */
+            document_ids: string[];
+        };
+        /** ProductRead */
+        ProductRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Space Id */
+            space_id: string | null;
+            /** Required Languages */
+            required_languages: string[];
+            /** Document Count */
+            document_count: number;
+            /** Latest Release No */
+            latest_release_no: number | null;
+            /** Archived At */
+            archived_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ProductReleaseDetailRead */
+        ProductReleaseDetailRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Release No */
+            release_no: number;
+            /** Change Note */
+            change_note: string | null;
+            /** Item Count */
+            item_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By Name */
+            created_by_name: string | null;
+            /** Items */
+            items: components["schemas"]["ProductReleaseItemRead"][];
+        };
+        /** ProductReleaseItemRead */
+        ProductReleaseItemRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /**
+             * Version Id
+             * Format: uuid
+             */
+            version_id: string;
+            /** Version No */
+            version_no: number;
+            /** Title */
+            title: string;
+            doc_type: components["schemas"]["DocType"];
+            /** Language */
+            language: string;
+            access_level: components["schemas"]["AccessLevel"];
+            /** Folder Path */
+            folder_path: string;
+        };
+        /** ProductReleaseRead */
+        ProductReleaseRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Release No */
+            release_no: number;
+            /** Change Note */
+            change_note: string | null;
+            /** Item Count */
+            item_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By Name */
+            created_by_name: string | null;
+        };
+        /**
+         * ProductUpdate
+         * @description A field left out stays as it is; `null` is a 422 except for `space_id` (clears it).
+         */
+        ProductUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Space Id */
+            space_id?: string | null;
+            /** Required Languages */
+            required_languages?: string[] | null;
+        };
         /** ReauthenticateRequest */
         ReauthenticateRequest: {
             /** Password */
@@ -2238,6 +2525,305 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DocumentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_products: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_ProductRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_product: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_product: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: string;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_product: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: string;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_product_documents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: string;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_DocumentListItem_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_product_documents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: string;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductDocumentsSet"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_DocumentListItem_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_product_language_matrix: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: string;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanguageMatrixRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_product_releases: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: string;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_ProductReleaseRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_product_release: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: string;
+                release_no: number;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductReleaseDetailRead"];
                 };
             };
             /** @description Validation Error */
