@@ -2,14 +2,18 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   createDocument,
+  createCustomer,
   createUpload,
   deleteFolder,
   getMe,
+  listDeliveries,
+  getProductRelease,
   getVersionFileUrl,
   listDocuments,
   listFolders,
   login,
   logout,
+  setProductDocuments,
   trashDocument,
   unlinkLanguageVariant,
   updateFolder,
@@ -159,5 +163,48 @@ describe("endpoints", () => {
       "DELETE",
       "/api/v1/app/tenants/t-1/documents/d-1/language-variants/d-2",
     ]);
+  });
+
+  it("setProductDocuments puts the whole set and getProductRelease puts the release number in the path", async () => {
+    const fetchMock = vi
+      .fn<(request: Request) => Promise<Response>>()
+      .mockResolvedValueOnce(jsonResponse(200, { items: [], next_cursor: null }))
+      .mockResolvedValueOnce(jsonResponse(200, { id: "r-2", release_no: 2, items: [] }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await setProductDocuments("t-1", "p-1", { document_ids: ["d-1", "d-2"] });
+    await getProductRelease("t-1", "p-1", 2);
+
+    const [set, release] = fetchMock.mock.calls.map(([request]) => request);
+    expect([set?.method, new URL(set?.url ?? "").pathname]).toEqual([
+      "PUT",
+      "/api/v1/app/tenants/t-1/products/p-1/documents",
+    ]);
+    expect(await set?.json()).toEqual({ document_ids: ["d-1", "d-2"] });
+    expect([release?.method, new URL(release?.url ?? "").pathname]).toEqual([
+      "GET",
+      "/api/v1/app/tenants/t-1/products/p-1/releases/2",
+    ]);
+  });
+
+  it("listDeliveries sends the filters as query parameters and createCustomer posts the body", async () => {
+    const fetchMock = vi
+      .fn<(request: Request) => Promise<Response>>()
+      .mockResolvedValueOnce(jsonResponse(200, { items: [], next_cursor: null }))
+      .mockResolvedValueOnce(jsonResponse(201, { id: "c-1" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await listDeliveries("t-1", { customer_id: "c-1", status: "draft" });
+    await createCustomer("t-1", { name: "Muster AG", contact_email: "info@muster.de" });
+
+    const [list, create] = fetchMock.mock.calls.map(([request]) => request);
+    const url = new URL(list?.url ?? "");
+    expect(url.pathname).toBe("/api/v1/app/tenants/t-1/deliveries");
+    expect(Object.fromEntries(url.searchParams)).toEqual({ customer_id: "c-1", status: "draft" });
+    expect([create?.method, new URL(create?.url ?? "").pathname]).toEqual([
+      "POST",
+      "/api/v1/app/tenants/t-1/customers",
+    ]);
+    expect(await create?.json()).toEqual({ name: "Muster AG", contact_email: "info@muster.de" });
   });
 });

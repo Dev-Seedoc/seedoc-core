@@ -87,6 +87,10 @@
       "bg": "Bulgarisch",
       "ja": "Japanisch",
       "zh": "Chinesisch"
+    },
+    "languageList": {
+      "add": "Sprache hinzufügen …",
+      "remove": "{{language}} entfernen"
     }
   },
   "shell": {
@@ -121,6 +125,11 @@
     "placeholder": {
       "title": "Dieser Bereich ist in Arbeit",
       "description": "Diese Seite wird in Kürze verfügbar sein."
+    },
+    "errorPage": {
+      "title": "Etwas ist schiefgelaufen",
+      "description": "Diese Seite konnte nicht angezeigt werden. Bitte laden Sie die Seite neu. Falls Sie die Seite automatisch übersetzen lassen, schalten Sie die Übersetzung bitte aus.",
+      "reload": "Neu laden"
     }
   },
   "documents": {
@@ -341,6 +350,209 @@
       "choose": "Verknüpfen",
       "linkCandidate": "„{{title}}“ verknüpfen",
       "conflict": "Das geht nicht: Beide Sprachgruppen enthalten ein Dokument in derselben Sprache (auch im Papierkorb zählt es)."
+    }
+  },
+  "products": {
+    "list": {
+      "title": "Produkte",
+      "name": "Name",
+      "space": "Bereich",
+      "languages": "Pflichtsprachen",
+      "documents": "Dokumente",
+      "latestRelease": "Letzte Freigabe",
+      "noRelease": "Noch keine",
+      "releaseNo": "Freigabe {{no}}",
+      "loadFailed": "Die Produkte konnten nicht geladen werden.",
+      "emptyTitle": "Noch keine Produkte",
+      "emptyDescription": "Ein Produkt bündelt die Dokumentation eines Maschinentyps. Jede Maschine einer Lieferung gehört zu einem Produkt."
+    },
+    "create": {
+      "open": "Produkt anlegen",
+      "title": "Produkt anlegen",
+      "description": "Name, Bereich und die Sprachen, in denen die Dokumentation vorliegen muss.",
+      "submit": "Anlegen",
+      "created": "Produkt „{{name}}“ angelegt."
+    },
+    "form": {
+      "name": "Name",
+      "nameRequired": "Bitte geben Sie einen Namen ein.",
+      "nameTooLong": "Der Name darf höchstens 200 Zeichen lang sein.",
+      "space": "Bereich",
+      "noSpace": "Kein Bereich",
+      "spaceHint": "Optional. Hilft beim Auswählen der Dokumente.",
+      "languages": "Pflichtsprachen",
+      "languagesHint": "In diesen Sprachen muss die Dokumentation vorliegen. Die erste Sprache gibt den Zeilen der Sprachübersicht ihren Titel.",
+      "languagesRequired": "Bitte wählen Sie mindestens eine Sprache.",
+      "title": "Angaben zum Produkt",
+      "saved": "Änderungen gespeichert."
+    },
+    "detail": {
+      "crumb": "Produkt",
+      "back": "Zurück zu den Produkten",
+      "notFoundTitle": "Produkt nicht gefunden",
+      "notFoundDescription": "Das Produkt existiert nicht oder Sie haben keinen Zugriff darauf.",
+      "loadFailed": "Das Produkt konnte nicht geladen werden.",
+      "summary_one": "{{count}} Dokument",
+      "summary_other": "{{count}} Dokumente",
+      "noRelease": "Noch keine Freigabe"
+    },
+    "tabs": {
+      "label": "Bereiche des Produkts",
+      "documents": "Dokumente",
+      "languages": "Sprachen",
+      "releases": "Freigaben"
+    },
+    "documents": {
+      "title": "Dokumente des Produkts",
+      "description": "Diese Dokumente gelten für jede Maschine des Produkts. Eine Produktfreigabe friert ihre aktuellen Versionen ein.",
+      "loadFailed": "Die Dokumente des Produkts konnten nicht geladen werden.",
+      "emptyTitle": "Noch keine Dokumente",
+      "emptyDescription": "Wählen Sie die Dokumente aus der Bibliothek, die zu diesem Produkt gehören.",
+      "choose": "Dokumente auswählen",
+      "remove": "Entfernen",
+      "removeDocument": "„{{title}}“ aus dem Produkt entfernen",
+      "removed": "„{{title}}“ aus dem Produkt entfernt.",
+      "pickerTitle": "Dokumente für „{{name}}“",
+      "pickerDescription": "Haken Sie alle Dokumente an, die zum Produkt gehören sollen. Speichern ersetzt die bisherige Auswahl.",
+      "onlyOwnSpace": "Nur Dokumente aus dem Bereich des Produkts",
+      "results": "Dokumente der Bibliothek",
+      "noResults": "Keine passenden Dokumente.",
+      "loadMore": "Mehr laden",
+      "machineSpecific": "Maschinenspezifisch",
+      "selected_one": "{{count}} Dokument ausgewählt",
+      "selected_other": "{{count}} Dokumente ausgewählt",
+      "saved_one": "Das Produkt hat jetzt {{count}} Dokument.",
+      "saved_other": "Das Produkt hat jetzt {{count}} Dokumente.",
+      "error": {
+        "trashed": "Ein ausgewähltes Dokument liegt inzwischen im Papierkorb. Stellen Sie es wieder her oder nehmen Sie den Haken heraus.",
+        "machineSpecific": "Ein ausgewähltes Dokument ist inzwischen einer Maschine zugeordnet und kann nicht zu einem Produkt gehören.",
+        "tooMany": "Ein Produkt kann höchstens {{max}} Dokumente haben."
+      }
+    },
+    "languages": {
+      "title": "Sprachübersicht",
+      "description": "Für jedes Dokument des Produkts: Liegt es in jeder Pflichtsprache vor? Es zählen nur Sprachfassungen, die selbst zum Produkt gehören.",
+      "loadFailed": "Die Sprachübersicht konnte nicht geladen werden.",
+      "emptyTitle": "Noch nichts zu prüfen",
+      "emptyDescription": "Sobald das Produkt Dokumente hat, sehen Sie hier, welche Sprachen fehlen.",
+      "document": "Dokument",
+      "complete": "Alle Dokumente liegen in allen Pflichtsprachen vor.",
+      "missingCount_one": "{{count}} Sprachfassung fehlt.",
+      "missingCount_other": "{{count}} Sprachfassungen fehlen.",
+      "present": "„{{title}}“ auf {{language}} öffnen",
+      "missing": "„{{title}}“ fehlt auf {{language}}"
+    },
+    "releases": {
+      "title": "Freigaben",
+      "description": "Jede Freigabe hält die damals aktuellen Versionen aller Dokumente des Produkts fest. Freigaben ändern sich nie.",
+      "loadFailed": "Die Freigaben konnten nicht geladen werden.",
+      "emptyTitle": "Noch keine Freigabe",
+      "emptyDescription": "Freigaben des Produkts erscheinen hier.",
+      "release": "Freigabe",
+      "changeNote": "Änderungshinweis",
+      "itemCount": "Dokumente",
+      "createdAt": "Erstellt am",
+      "createdBy": "Erstellt von",
+      "items": "Dokumente der Freigabe {{no}}",
+      "itemsLoadFailed": "Die Dokumente der Freigabe konnten nicht geladen werden."
+    }
+  },
+  "customers": {
+    "list": {
+      "title": "Kunden",
+      "name": "Name",
+      "contactName": "Ansprechpartner",
+      "contactEmail": "E-Mail",
+      "deliveries": "Lieferungen",
+      "loadFailed": "Die Kunden konnten nicht geladen werden.",
+      "emptyTitle": "Noch keine Kunden",
+      "emptyDescription": "Legen Sie Ihre Kunden an, um ihnen Maschinen und Anlagen mit Dokumentation zu liefern."
+    },
+    "create": {
+      "open": "Kunde anlegen",
+      "title": "Kunde anlegen",
+      "description": "Name des Kunden und optional ein Ansprechpartner.",
+      "submit": "Anlegen",
+      "created": "Kunde „{{name}}“ angelegt."
+    },
+    "form": {
+      "name": "Name",
+      "contactName": "Ansprechpartner (optional)",
+      "contactEmail": "E-Mail des Ansprechpartners (optional)",
+      "nameRequired": "Bitte geben Sie einen Namen ein.",
+      "nameTooLong": "Höchstens 200 Zeichen.",
+      "emailInvalid": "Bitte geben Sie eine gültige E-Mail-Adresse ein, z. B. name@firma.de.",
+      "title": "Angaben zum Kunden",
+      "saved": "Änderungen gespeichert."
+    },
+    "detail": {
+      "crumb": "Kunde",
+      "back": "Zurück zu den Kunden",
+      "notFoundTitle": "Kunde nicht gefunden",
+      "notFoundDescription": "Der Kunde existiert nicht oder Sie haben keinen Zugriff darauf.",
+      "loadFailed": "Der Kunde konnte nicht geladen werden.",
+      "summary_one": "{{count}} Lieferung",
+      "summary_other": "{{count}} Lieferungen"
+    },
+    "tabs": {
+      "label": "Bereiche des Kunden",
+      "machines": "Maschinen",
+      "deliveries": "Lieferungen"
+    },
+    "machines": {
+      "title": "Maschinen",
+      "description": "Alle Maschinen des Kunden aus allen Lieferungen. Maschinen fügen Sie in der jeweiligen Lieferung hinzu.",
+      "name": "Maschine",
+      "serialNo": "Seriennummer",
+      "product": "Produkt",
+      "delivery": "Lieferung",
+      "status": "Status",
+      "emptyTitle": "Noch keine Maschinen",
+      "emptyDescription": "Legen Sie eine Lieferung an und fügen Sie dort die Maschinen hinzu.",
+      "deliveryFailed": "Die Maschinen der Lieferung „{{name}}“ konnten nicht geladen werden."
+    }
+  },
+  "deliveries": {
+    "detail": {
+      "crumb": "Lieferung"
+    },
+    "kind": {
+      "machine": "Maschine",
+      "system": "Anlage"
+    },
+    "kindHint": {
+      "machine": "Genau eine Maschine mit einem QR-Code.",
+      "system": "Mehrere Maschinen, jede mit eigenem QR-Code, und ein QR-Code für die ganze Anlage."
+    },
+    "list": {
+      "title": "Lieferungen",
+      "name": "Name",
+      "kind": "Art",
+      "orderNo": "Auftragsnummer",
+      "status": "Status",
+      "machines": "Maschinen",
+      "release": "Freigabe",
+      "releaseNo": "Freigabe {{no}}",
+      "loadFailed": "Die Lieferungen konnten nicht geladen werden.",
+      "emptyTitle": "Noch keine Lieferungen",
+      "emptyDescription": "Eine Lieferung fasst zusammen, was der Kunde erhalten hat: eine Maschine oder eine Anlage aus mehreren Maschinen."
+    },
+    "create": {
+      "open": "Lieferung anlegen",
+      "title": "Lieferung für „{{customer}}“ anlegen",
+      "description": "Die Maschinen fügen Sie danach in der Lieferung hinzu.",
+      "kind": "Art der Lieferung",
+      "name": "Name",
+      "nameRequired": "Bitte geben Sie einen Namen ein.",
+      "nameTooLong": "Höchstens 200 Zeichen.",
+      "orderNo": "Auftragsnummer (optional)",
+      "orderNoTooLong": "Höchstens 100 Zeichen.",
+      "languages": "Pflichtsprachen",
+      "languagesFromProducts": "Aus den Produkten der Maschinen übernehmen",
+      "languagesFixed": "Jetzt festlegen",
+      "languagesHint": "Bis zur ersten Veröffentlichung können Sie die Sprachen jederzeit ändern.",
+      "submit": "Anlegen",
+      "created": "Lieferung „{{name}}“ angelegt."
     }
   },
   "auth": {

@@ -4,6 +4,11 @@ import { client } from "./client";
 import { toApiError } from "./errors";
 import type {
   AcceptInvitationRequest,
+  CustomerCreate,
+  CustomerRead,
+  CustomerUpdate,
+  DeliveryCreate,
+  DeliveryRead,
   DocumentCreate,
   DocumentRead,
   DocumentUpdate,
@@ -15,16 +20,27 @@ import type {
   HealthRead,
   InvitationPreview,
   LanguageVariantLink,
+  ListDeliveriesQuery,
   ListDocumentsQuery,
   LoginRequest,
   MeRead,
+  Page_CustomerRead_,
+  Page_DeliveryListItem_,
   Page_DocumentListItem_,
+  LanguageMatrixRead,
   Page_DocumentVersionRead_,
   Page_FolderRead_,
+  Page_ProductRead_,
+  Page_ProductReleaseRead_,
   Page_SpaceRead_,
   Page_StaffTenantListItem_,
   PasswordResetConfirmRequest,
   PasswordResetRequest,
+  ProductCreate,
+  ProductDocumentsSet,
+  ProductRead,
+  ProductReleaseDetailRead,
+  ProductUpdate,
   ReauthenticateRequest,
   SpaceCreate,
   SpaceRead,
@@ -295,6 +311,137 @@ export function unlinkLanguageVariant(
   return unwrap(
     client.DELETE("/api/v1/app/tenants/{tenant_id}/documents/{document_id}/language-variants/{variant_document_id}", {
       params: { path: { ...documentPath(tenantId, documentId), variant_document_id: variantDocumentId } },
+    }),
+  );
+}
+
+// Manufacturer app: products (API.md §3.4)
+
+export function listProducts(tenantId: string): Promise<Page_ProductRead_> {
+  return unwrap(client.GET("/api/v1/app/tenants/{tenant_id}/products", { params: { path: tenantPath(tenantId) } }));
+}
+
+export function createProduct(tenantId: string, body: ProductCreate): Promise<ProductRead> {
+  return unwrap(
+    client.POST("/api/v1/app/tenants/{tenant_id}/products", { params: { path: tenantPath(tenantId) }, body }),
+  );
+}
+
+function productPath(tenantId: string, productId: string) {
+  return { ...tenantPath(tenantId), product_id: productId };
+}
+
+export function getProduct(tenantId: string, productId: string): Promise<ProductRead> {
+  return unwrap(
+    client.GET("/api/v1/app/tenants/{tenant_id}/products/{product_id}", {
+      params: { path: productPath(tenantId, productId) },
+    }),
+  );
+}
+
+export function updateProduct(tenantId: string, productId: string, body: ProductUpdate): Promise<ProductRead> {
+  return unwrap(
+    client.PATCH("/api/v1/app/tenants/{tenant_id}/products/{product_id}", {
+      params: { path: productPath(tenantId, productId) },
+      body,
+    }),
+  );
+}
+
+export function listProductDocuments(tenantId: string, productId: string): Promise<Page_DocumentListItem_> {
+  return unwrap(
+    client.GET("/api/v1/app/tenants/{tenant_id}/products/{product_id}/documents", {
+      params: { path: productPath(tenantId, productId) },
+    }),
+  );
+}
+
+export function setProductDocuments(
+  tenantId: string,
+  productId: string,
+  body: ProductDocumentsSet,
+): Promise<Page_DocumentListItem_> {
+  return unwrap(
+    client.PUT("/api/v1/app/tenants/{tenant_id}/products/{product_id}/documents", {
+      params: { path: productPath(tenantId, productId) },
+      body,
+    }),
+  );
+}
+
+export function getProductLanguageMatrix(tenantId: string, productId: string): Promise<LanguageMatrixRead> {
+  return unwrap(
+    client.GET("/api/v1/app/tenants/{tenant_id}/products/{product_id}/languages", {
+      params: { path: productPath(tenantId, productId) },
+    }),
+  );
+}
+
+export function listProductReleases(tenantId: string, productId: string): Promise<Page_ProductReleaseRead_> {
+  return unwrap(
+    client.GET("/api/v1/app/tenants/{tenant_id}/products/{product_id}/releases", {
+      params: { path: productPath(tenantId, productId) },
+    }),
+  );
+}
+
+export function getProductRelease(
+  tenantId: string,
+  productId: string,
+  releaseNo: number,
+): Promise<ProductReleaseDetailRead> {
+  return unwrap(
+    client.GET("/api/v1/app/tenants/{tenant_id}/products/{product_id}/releases/{release_no}", {
+      params: { path: { ...productPath(tenantId, productId), release_no: releaseNo } },
+    }),
+  );
+}
+
+// Manufacturer app: customers and deliveries (API.md §3.5)
+
+export function listCustomers(tenantId: string): Promise<Page_CustomerRead_> {
+  return unwrap(client.GET("/api/v1/app/tenants/{tenant_id}/customers", { params: { path: tenantPath(tenantId) } }));
+}
+
+export function createCustomer(tenantId: string, body: CustomerCreate): Promise<CustomerRead> {
+  return unwrap(
+    client.POST("/api/v1/app/tenants/{tenant_id}/customers", { params: { path: tenantPath(tenantId) }, body }),
+  );
+}
+
+export function getCustomer(tenantId: string, customerId: string): Promise<CustomerRead> {
+  return unwrap(
+    client.GET("/api/v1/app/tenants/{tenant_id}/customers/{customer_id}", {
+      params: { path: { ...tenantPath(tenantId), customer_id: customerId } },
+    }),
+  );
+}
+
+export function updateCustomer(tenantId: string, customerId: string, body: CustomerUpdate): Promise<CustomerRead> {
+  return unwrap(
+    client.PATCH("/api/v1/app/tenants/{tenant_id}/customers/{customer_id}", {
+      params: { path: { ...tenantPath(tenantId), customer_id: customerId } },
+      body,
+    }),
+  );
+}
+
+export function listDeliveries(tenantId: string, query: ListDeliveriesQuery): Promise<Page_DeliveryListItem_> {
+  return unwrap(
+    client.GET("/api/v1/app/tenants/{tenant_id}/deliveries", { params: { path: tenantPath(tenantId), query } }),
+  );
+}
+
+export function createDelivery(tenantId: string, body: DeliveryCreate): Promise<DeliveryRead> {
+  return unwrap(
+    client.POST("/api/v1/app/tenants/{tenant_id}/deliveries", { params: { path: tenantPath(tenantId) }, body }),
+  );
+}
+
+export function getDelivery(tenantId: string, deliveryId: string): Promise<DeliveryRead> {
+  return unwrap(
+    client.GET("/api/v1/app/tenants/{tenant_id}/deliveries/{delivery_id}", {
+      params: { path: { ...tenantPath(tenantId), delivery_id: deliveryId } },
     }),
   );
 }

@@ -115,7 +115,7 @@ export function StaffTenantsPage() {
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold tracking-tight">{t("staff.tenants.title")}</h1>
         {createButton}
       </div>

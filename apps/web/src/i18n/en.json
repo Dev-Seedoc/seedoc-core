@@ -87,6 +87,10 @@
       "bg": "Bulgarian",
       "ja": "Japanese",
       "zh": "Chinese"
+    },
+    "languageList": {
+      "add": "Add language …",
+      "remove": "Remove {{language}}"
     }
   },
   "shell": {
@@ -121,6 +125,11 @@
     "placeholder": {
       "title": "This area is under construction",
       "description": "This page will be available soon."
+    },
+    "errorPage": {
+      "title": "Something went wrong",
+      "description": "This page could not be shown. Please reload the page. If your browser translates the page, please turn translation off.",
+      "reload": "Reload"
     }
   },
   "documents": {
@@ -341,6 +350,209 @@
       "choose": "Link",
       "linkCandidate": "Link “{{title}}”",
       "conflict": "Not possible: both language groups contain a document in the same language (one in the trash counts too)."
+    }
+  },
+  "products": {
+    "list": {
+      "title": "Products",
+      "name": "Name",
+      "space": "Space",
+      "languages": "Required languages",
+      "documents": "Documents",
+      "latestRelease": "Latest release",
+      "noRelease": "None yet",
+      "releaseNo": "Release {{no}}",
+      "loadFailed": "The products could not be loaded.",
+      "emptyTitle": "No products yet",
+      "emptyDescription": "A product bundles the documentation of one machine type. Every machine of a delivery belongs to a product."
+    },
+    "create": {
+      "open": "Create product",
+      "title": "Create product",
+      "description": "Name, space and the languages the documentation must be available in.",
+      "submit": "Create",
+      "created": "Product “{{name}}” created."
+    },
+    "form": {
+      "name": "Name",
+      "nameRequired": "Please enter a name.",
+      "nameTooLong": "The name may be at most 200 characters long.",
+      "space": "Space",
+      "noSpace": "No space",
+      "spaceHint": "Optional. Helps when choosing documents.",
+      "languages": "Required languages",
+      "languagesHint": "The documentation must be available in these languages. The first language names the rows of the language overview.",
+      "languagesRequired": "Please choose at least one language.",
+      "title": "Product details",
+      "saved": "Changes saved."
+    },
+    "detail": {
+      "crumb": "Product",
+      "back": "Back to products",
+      "notFoundTitle": "Product not found",
+      "notFoundDescription": "The product does not exist or you have no access to it.",
+      "loadFailed": "The product could not be loaded.",
+      "summary_one": "{{count}} document",
+      "summary_other": "{{count}} documents",
+      "noRelease": "No release yet"
+    },
+    "tabs": {
+      "label": "Product sections",
+      "documents": "Documents",
+      "languages": "Languages",
+      "releases": "Releases"
+    },
+    "documents": {
+      "title": "Product documents",
+      "description": "These documents apply to every machine of the product. A product release freezes their current versions.",
+      "loadFailed": "The product's documents could not be loaded.",
+      "emptyTitle": "No documents yet",
+      "emptyDescription": "Choose the documents from the library that belong to this product.",
+      "choose": "Choose documents",
+      "remove": "Remove",
+      "removeDocument": "Remove “{{title}}” from the product",
+      "removed": "“{{title}}” removed from the product.",
+      "pickerTitle": "Documents for “{{name}}”",
+      "pickerDescription": "Tick every document that should belong to the product. Saving replaces the previous choice.",
+      "onlyOwnSpace": "Only documents from the product's space",
+      "results": "Library documents",
+      "noResults": "No matching documents.",
+      "loadMore": "Load more",
+      "machineSpecific": "Machine-specific",
+      "selected_one": "{{count}} document selected",
+      "selected_other": "{{count}} documents selected",
+      "saved_one": "The product now has {{count}} document.",
+      "saved_other": "The product now has {{count}} documents.",
+      "error": {
+        "trashed": "A chosen document is now in the trash. Restore it or untick it.",
+        "machineSpecific": "A chosen document now belongs to a machine and cannot belong to a product.",
+        "tooMany": "A product can have at most {{max}} documents."
+      }
+    },
+    "languages": {
+      "title": "Language overview",
+      "description": "For every document of the product: is it available in each required language? Only language versions that belong to the product themselves count.",
+      "loadFailed": "The language overview could not be loaded.",
+      "emptyTitle": "Nothing to check yet",
+      "emptyDescription": "Once the product has documents, you will see here which languages are missing.",
+      "document": "Document",
+      "complete": "Every document is available in every required language.",
+      "missingCount_one": "{{count}} language version is missing.",
+      "missingCount_other": "{{count}} language versions are missing.",
+      "present": "Open “{{title}}” in {{language}}",
+      "missing": "“{{title}}” is missing in {{language}}"
+    },
+    "releases": {
+      "title": "Releases",
+      "description": "Each release keeps the versions of all product documents that were current at the time. Releases never change.",
+      "loadFailed": "The releases could not be loaded.",
+      "emptyTitle": "No release yet",
+      "emptyDescription": "The product's releases appear here.",
+      "release": "Release",
+      "changeNote": "Change note",
+      "itemCount": "Documents",
+      "createdAt": "Created on",
+      "createdBy": "Created by",
+      "items": "Documents of release {{no}}",
+      "itemsLoadFailed": "The documents of the release could not be loaded."
+    }
+  },
+  "customers": {
+    "list": {
+      "title": "Customers",
+      "name": "Name",
+      "contactName": "Contact",
+      "contactEmail": "E-mail",
+      "deliveries": "Deliveries",
+      "loadFailed": "The customers could not be loaded.",
+      "emptyTitle": "No customers yet",
+      "emptyDescription": "Create your customers to deliver machines and systems with documentation to them."
+    },
+    "create": {
+      "open": "Create customer",
+      "title": "Create customer",
+      "description": "The customer's name and optionally a contact.",
+      "submit": "Create",
+      "created": "Customer “{{name}}” created."
+    },
+    "form": {
+      "name": "Name",
+      "contactName": "Contact (optional)",
+      "contactEmail": "Contact e-mail (optional)",
+      "nameRequired": "Please enter a name.",
+      "nameTooLong": "At most 200 characters.",
+      "emailInvalid": "Please enter a valid e-mail address, e.g. name@company.com.",
+      "title": "Customer details",
+      "saved": "Changes saved."
+    },
+    "detail": {
+      "crumb": "Customer",
+      "back": "Back to customers",
+      "notFoundTitle": "Customer not found",
+      "notFoundDescription": "The customer does not exist or you have no access to it.",
+      "loadFailed": "The customer could not be loaded.",
+      "summary_one": "{{count}} delivery",
+      "summary_other": "{{count}} deliveries"
+    },
+    "tabs": {
+      "label": "Customer sections",
+      "machines": "Machines",
+      "deliveries": "Deliveries"
+    },
+    "machines": {
+      "title": "Machines",
+      "description": "All of the customer's machines from all deliveries. You add machines in their delivery.",
+      "name": "Machine",
+      "serialNo": "Serial number",
+      "product": "Product",
+      "delivery": "Delivery",
+      "status": "Status",
+      "emptyTitle": "No machines yet",
+      "emptyDescription": "Create a delivery and add the machines there.",
+      "deliveryFailed": "The machines of delivery “{{name}}” could not be loaded."
+    }
+  },
+  "deliveries": {
+    "detail": {
+      "crumb": "Delivery"
+    },
+    "kind": {
+      "machine": "Machine",
+      "system": "System"
+    },
+    "kindHint": {
+      "machine": "Exactly one machine with one QR code.",
+      "system": "Several machines, each with its own QR code, plus one QR code for the whole system."
+    },
+    "list": {
+      "title": "Deliveries",
+      "name": "Name",
+      "kind": "Kind",
+      "orderNo": "Order number",
+      "status": "Status",
+      "machines": "Machines",
+      "release": "Release",
+      "releaseNo": "Release {{no}}",
+      "loadFailed": "The deliveries could not be loaded.",
+      "emptyTitle": "No deliveries yet",
+      "emptyDescription": "A delivery sums up what the customer received: one machine or a system of several machines."
+    },
+    "create": {
+      "open": "Create delivery",
+      "title": "Create delivery for “{{customer}}”",
+      "description": "You add the machines in the delivery afterwards.",
+      "kind": "Kind of delivery",
+      "name": "Name",
+      "nameRequired": "Please enter a name.",
+      "nameTooLong": "At most 200 characters.",
+      "orderNo": "Order number (optional)",
+      "orderNoTooLong": "At most 100 characters.",
+      "languages": "Required languages",
+      "languagesFromProducts": "Take them from the machines' products",
+      "languagesFixed": "Set them now",
+      "languagesHint": "You can change the languages at any time until the first publish.",
+      "submit": "Create",
+      "created": "Delivery “{{name}}” created."
     }
   },
   "auth": {

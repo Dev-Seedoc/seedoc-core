@@ -59,7 +59,7 @@ describe("AppLayout", () => {
 
   it("shows the sidebar, breadcrumbs, tenant and page for a member", () => {
     // A page that is still a placeholder, so the test needs no API answers besides get_me.
-    renderApp("/products", ME);
+    renderApp("/settings", ME);
 
     const nav = screen.getByRole("navigation", { name: "Hauptnavigation" });
     for (const label of ["Übersicht", "Dokumente", "Produkte", "Kunden", "Einstellungen"]) {
@@ -69,7 +69,7 @@ describe("AppLayout", () => {
 
     const breadcrumbs = screen.getByRole("navigation", { name: "Seitenpfad" });
     expect(within(breadcrumbs).getByRole("link", { name: "Übersicht" })).toHaveAttribute("href", "/");
-    expect(within(breadcrumbs).getByText("Produkte")).toHaveAttribute("aria-current", "page");
+    expect(within(breadcrumbs).getByText("Einstellungen")).toHaveAttribute("aria-current", "page");
 
     expect(screen.getByText("Alpha Maschinenbau")).toBeInTheDocument();
     expect(screen.getByText("Dieser Bereich ist in Arbeit")).toBeInTheDocument();
