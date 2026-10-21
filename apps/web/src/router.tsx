@@ -1,5 +1,7 @@
 import { createBrowserRouter, type RouteObject } from "react-router";
 
+import { CustomerDetailPage } from "@/app/customers/CustomerDetailPage";
+import { CustomersPage } from "@/app/customers/CustomersPage";
 import { DocumentDetailPage } from "@/app/documents/DocumentDetailPage";
 import { DocumentsPage } from "@/app/documents/DocumentsPage";
 import { ProductDetailPage } from "@/app/products/ProductDetailPage";
@@ -62,8 +64,21 @@ export const routes: RouteObject[] = [
               },
               {
                 path: "customers",
-                element: <PagePlaceholder />,
                 handle: { crumb: (t) => t("shell.nav.customers") } satisfies RouteHandle,
+                children: [
+                  { index: true, element: <CustomersPage /> },
+                  {
+                    path: ":customerId",
+                    element: <CustomerDetailPage />,
+                    handle: { crumb: (t) => t("customers.detail.crumb") } satisfies RouteHandle,
+                  },
+                ],
+              },
+              // DeliveryWorkspacePage comes with the second half of M2-B6 (after H-15); the links already lead here.
+              {
+                path: "deliveries/:deliveryId",
+                element: <PagePlaceholder />,
+                handle: { crumb: (t) => t("deliveries.detail.crumb") } satisfies RouteHandle,
               },
               {
                 path: "settings",

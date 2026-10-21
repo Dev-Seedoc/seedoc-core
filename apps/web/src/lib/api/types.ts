@@ -5,6 +5,15 @@ type Schemas = components["schemas"];
 
 export type AcceptInvitationRequest = Schemas["AcceptInvitationRequest"];
 export type AccessLevel = Schemas["AccessLevel"];
+export type CustomerCreate = Schemas["CustomerCreate"];
+export type CustomerRead = Schemas["CustomerRead"];
+export type CustomerUpdate = Schemas["CustomerUpdate"];
+export type DeliveryCreate = Schemas["DeliveryCreate"];
+export type DeliveryKind = Schemas["DeliveryKind"];
+export type DeliveryListItem = Schemas["DeliveryListItem"];
+export type DeliveryRead = Schemas["DeliveryRead"];
+export type DeliveryStatus = Schemas["DeliveryStatus"];
+export type DeliveryUpdate = Schemas["DeliveryUpdate"];
 export type DocType = Schemas["DocType"];
 export type DocumentCreate = Schemas["DocumentCreate"];
 export type DocumentListItem = Schemas["DocumentListItem"];
@@ -24,11 +33,14 @@ export type LanguageMatrixRow = Schemas["LanguageMatrixRow"];
 export type LanguageVariantLink = Schemas["LanguageVariantLink"];
 export type LanguageVariantRead = Schemas["LanguageVariantRead"];
 export type LoginRequest = Schemas["LoginRequest"];
+export type MachineListItem = Schemas["MachineListItem"];
 export type MemberRole = Schemas["MemberRole"];
 export type MeRead = Schemas["MeRead"];
 export type OperatorOrgMembershipRead = Schemas["OperatorOrgMembershipRead"];
 export type OperatorRole = Schemas["OperatorRole"];
 // Page[...] (NAMING §4) under the names FastAPI generates for them.
+export type Page_CustomerRead_ = Schemas["Page_CustomerRead_"];
+export type Page_DeliveryListItem_ = Schemas["Page_DeliveryListItem_"];
 export type Page_DocumentListItem_ = Schemas["Page_DocumentListItem_"];
 export type Page_DocumentVersionRead_ = Schemas["Page_DocumentVersionRead_"];
 export type Page_FolderRead_ = Schemas["Page_FolderRead_"];
@@ -67,3 +79,5 @@ export type VersionFileUrlRead = Schemas["VersionFileUrlRead"];
 
 // Query parameters of list_documents (API.md §3.3), taken from the generated operation; not a schema of its own.
 export type ListDocumentsQuery = NonNullable<operations["list_documents"]["parameters"]["query"]>;
+// Filters of list_deliveries (API.md §3.5).
+export type ListDeliveriesQuery = NonNullable<operations["list_deliveries"]["parameters"]["query"]>;

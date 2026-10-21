@@ -457,6 +457,104 @@
       "itemsLoadFailed": "Die Dokumente der Freigabe konnten nicht geladen werden."
     }
   },
+  "customers": {
+    "list": {
+      "title": "Kunden",
+      "name": "Name",
+      "contactName": "Ansprechpartner",
+      "contactEmail": "E-Mail",
+      "deliveries": "Lieferungen",
+      "loadFailed": "Die Kunden konnten nicht geladen werden.",
+      "emptyTitle": "Noch keine Kunden",
+      "emptyDescription": "Legen Sie Ihre Kunden an, um ihnen Maschinen und Anlagen mit Dokumentation zu liefern."
+    },
+    "create": {
+      "open": "Kunde anlegen",
+      "title": "Kunde anlegen",
+      "description": "Name des Kunden und optional ein Ansprechpartner.",
+      "submit": "Anlegen",
+      "created": "Kunde „{{name}}“ angelegt."
+    },
+    "form": {
+      "name": "Name",
+      "contactName": "Ansprechpartner (optional)",
+      "contactEmail": "E-Mail des Ansprechpartners (optional)",
+      "nameRequired": "Bitte geben Sie einen Namen ein.",
+      "nameTooLong": "Höchstens 200 Zeichen.",
+      "emailInvalid": "Bitte geben Sie eine gültige E-Mail-Adresse ein, z. B. name@firma.de.",
+      "title": "Angaben zum Kunden",
+      "saved": "Änderungen gespeichert."
+    },
+    "detail": {
+      "crumb": "Kunde",
+      "back": "Zurück zu den Kunden",
+      "notFoundTitle": "Kunde nicht gefunden",
+      "notFoundDescription": "Der Kunde existiert nicht oder Sie haben keinen Zugriff darauf.",
+      "loadFailed": "Der Kunde konnte nicht geladen werden.",
+      "summary_one": "{{count}} Lieferung",
+      "summary_other": "{{count}} Lieferungen"
+    },
+    "tabs": {
+      "label": "Bereiche des Kunden",
+      "machines": "Maschinen",
+      "deliveries": "Lieferungen"
+    },
+    "machines": {
+      "title": "Maschinen",
+      "description": "Alle Maschinen des Kunden aus allen Lieferungen. Maschinen fügen Sie in der jeweiligen Lieferung hinzu.",
+      "name": "Maschine",
+      "serialNo": "Seriennummer",
+      "product": "Produkt",
+      "delivery": "Lieferung",
+      "status": "Status",
+      "emptyTitle": "Noch keine Maschinen",
+      "emptyDescription": "Legen Sie eine Lieferung an und fügen Sie dort die Maschinen hinzu.",
+      "deliveryFailed": "Die Maschinen der Lieferung „{{name}}“ konnten nicht geladen werden."
+    }
+  },
+  "deliveries": {
+    "detail": {
+      "crumb": "Lieferung"
+    },
+    "kind": {
+      "machine": "Maschine",
+      "system": "Anlage"
+    },
+    "kindHint": {
+      "machine": "Genau eine Maschine mit einem QR-Code.",
+      "system": "Mehrere Maschinen, jede mit eigenem QR-Code, und ein QR-Code für die ganze Anlage."
+    },
+    "list": {
+      "title": "Lieferungen",
+      "name": "Name",
+      "kind": "Art",
+      "orderNo": "Auftragsnummer",
+      "status": "Status",
+      "machines": "Maschinen",
+      "release": "Freigabe",
+      "releaseNo": "Freigabe {{no}}",
+      "loadFailed": "Die Lieferungen konnten nicht geladen werden.",
+      "emptyTitle": "Noch keine Lieferungen",
+      "emptyDescription": "Eine Lieferung fasst zusammen, was der Kunde erhalten hat: eine Maschine oder eine Anlage aus mehreren Maschinen."
+    },
+    "create": {
+      "open": "Lieferung anlegen",
+      "title": "Lieferung für „{{customer}}“ anlegen",
+      "description": "Die Maschinen fügen Sie danach in der Lieferung hinzu.",
+      "kind": "Art der Lieferung",
+      "name": "Name",
+      "nameRequired": "Bitte geben Sie einen Namen ein.",
+      "nameTooLong": "Höchstens 200 Zeichen.",
+      "orderNo": "Auftragsnummer (optional)",
+      "orderNoTooLong": "Höchstens 100 Zeichen.",
+      "languages": "Pflichtsprachen",
+      "languagesFromProducts": "Aus den Produkten der Maschinen übernehmen",
+      "languagesFixed": "Jetzt festlegen",
+      "languagesHint": "Bis zur ersten Veröffentlichung können Sie die Sprachen jederzeit ändern.",
+      "submit": "Anlegen",
+      "created": "Lieferung „{{name}}“ angelegt."
+    }
+  },
   "auth": {
     "login": {
       "title": "Anmelden",

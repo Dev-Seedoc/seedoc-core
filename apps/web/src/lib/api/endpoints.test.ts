@@ -2,9 +2,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   createDocument,
+  createCustomer,
   createUpload,
   deleteFolder,
   getMe,
+  listDeliveries,
   getProductRelease,
   getVersionFileUrl,
   listDocuments,
@@ -183,5 +185,26 @@ describe("endpoints", () => {
       "GET",
       "/api/v1/app/tenants/t-1/products/p-1/releases/2",
     ]);
+  });
+
+  it("listDeliveries sends the filters as query parameters and createCustomer posts the body", async () => {
+    const fetchMock = vi
+      .fn<(request: Request) => Promise<Response>>()
+      .mockResolvedValueOnce(jsonResponse(200, { items: [], next_cursor: null }))
+      .mockResolvedValueOnce(jsonResponse(201, { id: "c-1" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await listDeliveries("t-1", { customer_id: "c-1", status: "draft" });
+    await createCustomer("t-1", { name: "Muster AG", contact_email: "info@muster.de" });
+
+    const [list, create] = fetchMock.mock.calls.map(([request]) => request);
+    const url = new URL(list?.url ?? "");
+    expect(url.pathname).toBe("/api/v1/app/tenants/t-1/deliveries");
+    expect(Object.fromEntries(url.searchParams)).toEqual({ customer_id: "c-1", status: "draft" });
+    expect([create?.method, new URL(create?.url ?? "").pathname]).toEqual([
+      "POST",
+      "/api/v1/app/tenants/t-1/customers",
+    ]);
+    expect(await create?.json()).toEqual({ name: "Muster AG", contact_email: "info@muster.de" });
   });
 });

@@ -457,6 +457,104 @@
       "itemsLoadFailed": "The documents of the release could not be loaded."
     }
   },
+  "customers": {
+    "list": {
+      "title": "Customers",
+      "name": "Name",
+      "contactName": "Contact",
+      "contactEmail": "E-mail",
+      "deliveries": "Deliveries",
+      "loadFailed": "The customers could not be loaded.",
+      "emptyTitle": "No customers yet",
+      "emptyDescription": "Create your customers to deliver machines and systems with documentation to them."
+    },
+    "create": {
+      "open": "Create customer",
+      "title": "Create customer",
+      "description": "The customer's name and optionally a contact.",
+      "submit": "Create",
+      "created": "Customer “{{name}}” created."
+    },
+    "form": {
+      "name": "Name",
+      "contactName": "Contact (optional)",
+      "contactEmail": "Contact e-mail (optional)",
+      "nameRequired": "Please enter a name.",
+      "nameTooLong": "At most 200 characters.",
+      "emailInvalid": "Please enter a valid e-mail address, e.g. name@company.com.",
+      "title": "Customer details",
+      "saved": "Changes saved."
+    },
+    "detail": {
+      "crumb": "Customer",
+      "back": "Back to customers",
+      "notFoundTitle": "Customer not found",
+      "notFoundDescription": "The customer does not exist or you have no access to it.",
+      "loadFailed": "The customer could not be loaded.",
+      "summary_one": "{{count}} delivery",
+      "summary_other": "{{count}} deliveries"
+    },
+    "tabs": {
+      "label": "Customer sections",
+      "machines": "Machines",
+      "deliveries": "Deliveries"
+    },
+    "machines": {
+      "title": "Machines",
+      "description": "All of the customer's machines from all deliveries. You add machines in their delivery.",
+      "name": "Machine",
+      "serialNo": "Serial number",
+      "product": "Product",
+      "delivery": "Delivery",
+      "status": "Status",
+      "emptyTitle": "No machines yet",
+      "emptyDescription": "Create a delivery and add the machines there.",
+      "deliveryFailed": "The machines of delivery “{{name}}” could not be loaded."
+    }
+  },
+  "deliveries": {
+    "detail": {
+      "crumb": "Delivery"
+    },
+    "kind": {
+      "machine": "Machine",
+      "system": "System"
+    },
+    "kindHint": {
+      "machine": "Exactly one machine with one QR code.",
+      "system": "Several machines, each with its own QR code, plus one QR code for the whole system."
+    },
+    "list": {
+      "title": "Deliveries",
+      "name": "Name",
+      "kind": "Kind",
+      "orderNo": "Order number",
+      "status": "Status",
+      "machines": "Machines",
+      "release": "Release",
+      "releaseNo": "Release {{no}}",
+      "loadFailed": "The deliveries could not be loaded.",
+      "emptyTitle": "No deliveries yet",
+      "emptyDescription": "A delivery sums up what the customer received: one machine or a system of several machines."
+    },
+    "create": {
+      "open": "Create delivery",
+      "title": "Create delivery for “{{customer}}”",
+      "description": "You add the machines in the delivery afterwards.",
+      "kind": "Kind of delivery",
+      "name": "Name",
+      "nameRequired": "Please enter a name.",
+      "nameTooLong": "At most 200 characters.",
+      "orderNo": "Order number (optional)",
+      "orderNoTooLong": "At most 100 characters.",
+      "languages": "Required languages",
+      "languagesFromProducts": "Take them from the machines' products",
+      "languagesFixed": "Set them now",
+      "languagesHint": "You can change the languages at any time until the first publish.",
+      "submit": "Create",
+      "created": "Delivery “{{name}}” created."
+    }
+  },
   "auth": {
     "login": {
       "title": "Log in",

@@ -1,4 +1,4 @@
-import type { ListDocumentsQuery } from "./types";
+import type { ListDeliveriesQuery, ListDocumentsQuery } from "./types";
 
 // Query key factory (NAMING §6): queryKeys.<area>.<name>(...). Tenant-scoped areas start with
 // ["tenants", tenantId, ...] so invalidating ["tenants", tenantId] refreshes everything of one tenant.
@@ -34,6 +34,17 @@ export const queryKeys = {
       ["tenants", tenantId, "products", "detail", productId, "releases"] as const,
     productRelease: (tenantId: string, productId: string, releaseNo: number) =>
       ["tenants", tenantId, "products", "detail", productId, "releases", releaseNo] as const,
+    // Customers and deliveries: creating a delivery changes a customer's `delivery_count`, so delivery mutations
+    // invalidate both prefixes.
+    allCustomers: (tenantId: string) => ["tenants", tenantId, "customers"] as const,
+    customers: (tenantId: string) => ["tenants", tenantId, "customers", "list"] as const,
+    customer: (tenantId: string, customerId: string) =>
+      ["tenants", tenantId, "customers", "detail", customerId] as const,
+    allDeliveries: (tenantId: string) => ["tenants", tenantId, "deliveries"] as const,
+    deliveries: (tenantId: string, query: ListDeliveriesQuery) =>
+      ["tenants", tenantId, "deliveries", "list", query] as const,
+    delivery: (tenantId: string, deliveryId: string) =>
+      ["tenants", tenantId, "deliveries", "detail", deliveryId] as const,
   },
   // Staff data is not tenant-scoped (admin DB engine); logout drops it like every non-auth query.
   staff: {
