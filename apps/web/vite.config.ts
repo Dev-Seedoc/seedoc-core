@@ -22,5 +22,7 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     css: true,
+    // Times render in the viewer's time zone; pin it (as playwright.config.ts does) so CI in UTC shows the same.
+    env: { TZ: "Europe/Berlin" },
   },
 });
