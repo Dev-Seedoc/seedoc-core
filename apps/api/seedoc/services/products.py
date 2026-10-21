@@ -102,8 +102,15 @@ async def set_product_documents(
         # Locked, so two saves at the same time cannot mix their additions and removals.
         product = await _get_product(db, tenant_id, product_id, for_update=True)
         wanted = list(dict.fromkeys(body.document_ids))  # duplicates ignored, order kept
+        # Locked (in id order, so two saves cannot deadlock), so a parallel `attach_machine_document` cannot make one
+        # of them machine-specific in between.
         documents = list(
-            await db.scalars(select(Document).where(Document.tenant_id == tenant_id, Document.id.in_(wanted)))
+            await db.scalars(
+                select(Document)
+                .where(Document.tenant_id == tenant_id, Document.id.in_(wanted))
+                .order_by(Document.id)
+                .with_for_update()
+            )
         )
         if len(documents) != len(wanted):
             raise AppError(ErrorCode.NOT_FOUND)

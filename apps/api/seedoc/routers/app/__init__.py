@@ -5,7 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
-from seedoc.routers.app import documents, folders, products, spaces, uploads
+from seedoc.routers.app import customers, deliveries, documents, folders, machines, products, spaces, uploads
 
 
 def _tenant_path(tenant_id: UUID) -> None:
@@ -18,3 +18,6 @@ router.include_router(folders.router)
 router.include_router(uploads.router)
 router.include_router(documents.router)
 router.include_router(products.router)
+router.include_router(customers.router)
+router.include_router(deliveries.router)
+router.include_router(machines.router)
