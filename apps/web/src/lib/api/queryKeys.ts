@@ -22,6 +22,18 @@ export const queryKeys = {
       ["tenants", tenantId, "documents", "detail", documentId] as const,
     documentVersions: (tenantId: string, documentId: string) =>
       ["tenants", tenantId, "documents", "detail", documentId, "versions"] as const,
+    // Every product query (list, details, set, matrix, releases): saving a product or its set invalidates this prefix.
+    allProducts: (tenantId: string) => ["tenants", tenantId, "products"] as const,
+    products: (tenantId: string) => ["tenants", tenantId, "products", "list"] as const,
+    product: (tenantId: string, productId: string) => ["tenants", tenantId, "products", "detail", productId] as const,
+    productDocuments: (tenantId: string, productId: string) =>
+      ["tenants", tenantId, "products", "detail", productId, "documents"] as const,
+    productLanguageMatrix: (tenantId: string, productId: string) =>
+      ["tenants", tenantId, "products", "detail", productId, "languages"] as const,
+    productReleases: (tenantId: string, productId: string) =>
+      ["tenants", tenantId, "products", "detail", productId, "releases"] as const,
+    productRelease: (tenantId: string, productId: string, releaseNo: number) =>
+      ["tenants", tenantId, "products", "detail", productId, "releases", releaseNo] as const,
   },
   // Staff data is not tenant-scoped (admin DB engine); logout drops it like every non-auth query.
   staff: {

@@ -5,11 +5,13 @@ import {
   createUpload,
   deleteFolder,
   getMe,
+  getProductRelease,
   getVersionFileUrl,
   listDocuments,
   listFolders,
   login,
   logout,
+  setProductDocuments,
   trashDocument,
   unlinkLanguageVariant,
   updateFolder,
@@ -158,6 +160,28 @@ describe("endpoints", () => {
     expect([unlink?.method, new URL(unlink?.url ?? "").pathname]).toEqual([
       "DELETE",
       "/api/v1/app/tenants/t-1/documents/d-1/language-variants/d-2",
+    ]);
+  });
+
+  it("setProductDocuments puts the whole set and getProductRelease puts the release number in the path", async () => {
+    const fetchMock = vi
+      .fn<(request: Request) => Promise<Response>>()
+      .mockResolvedValueOnce(jsonResponse(200, { items: [], next_cursor: null }))
+      .mockResolvedValueOnce(jsonResponse(200, { id: "r-2", release_no: 2, items: [] }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await setProductDocuments("t-1", "p-1", { document_ids: ["d-1", "d-2"] });
+    await getProductRelease("t-1", "p-1", 2);
+
+    const [set, release] = fetchMock.mock.calls.map(([request]) => request);
+    expect([set?.method, new URL(set?.url ?? "").pathname]).toEqual([
+      "PUT",
+      "/api/v1/app/tenants/t-1/products/p-1/documents",
+    ]);
+    expect(await set?.json()).toEqual({ document_ids: ["d-1", "d-2"] });
+    expect([release?.method, new URL(release?.url ?? "").pathname]).toEqual([
+      "GET",
+      "/api/v1/app/tenants/t-1/products/p-1/releases/2",
     ]);
   });
 });

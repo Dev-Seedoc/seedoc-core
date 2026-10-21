@@ -1,13 +1,13 @@
-import { ArrowLeft, FileQuestion, Trash2 } from "lucide-react";
+import { FileQuestion, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Link, useLocation, useNavigate, useParams } from "react-router";
+import { useParams } from "react-router";
 
+import { BackLink } from "@/components/common/BackLink";
 import { EmptyState } from "@/components/common/EmptyState";
 import { LoadFailed } from "@/components/common/LoadFailed";
 import { Spinner } from "@/components/common/Spinner";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { useCurrentTenant } from "@/hooks/useCurrentTenant";
 import { getErrorCode } from "@/lib/api/errors";
 import { useDocument } from "@/lib/api/hooks/documents";
@@ -26,30 +26,6 @@ export function DocumentDetailPage() {
   const { documentId = "" } = useParams();
   // AppLayout renders pages only for users with a tenant.
   return currentTenant ? <DocumentDetail tenantId={currentTenant.tenant_id} documentId={documentId} /> : null;
-}
-
-// Back to the list the user came from (with its folder, filters and tab); opened directly, to /documents.
-function BackLink() {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const cameFromApp = location.key !== "default";
-  return (
-    <Button variant="ghost" size="sm" className="self-start" asChild>
-      <Link
-        to="/documents"
-        onClick={(event) => {
-          if (cameFromApp) {
-            event.preventDefault();
-            void navigate(-1);
-          }
-        }}
-      >
-        <ArrowLeft aria-hidden="true" />
-        {t("documents.detail.back")}
-      </Link>
-    </Button>
-  );
 }
 
 function DocumentDetail({ tenantId, documentId }: { tenantId: string; documentId: string }) {
@@ -78,7 +54,7 @@ function DocumentDetail({ tenantId, documentId }: { tenantId: string; documentId
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-      <BackLink />
+      <BackLink to="/documents" label={t("documents.detail.back")} />
       {content}
     </div>
   );

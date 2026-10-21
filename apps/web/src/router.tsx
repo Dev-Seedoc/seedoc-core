@@ -2,6 +2,8 @@ import { createBrowserRouter, type RouteObject } from "react-router";
 
 import { DocumentDetailPage } from "@/app/documents/DocumentDetailPage";
 import { DocumentsPage } from "@/app/documents/DocumentsPage";
+import { ProductDetailPage } from "@/app/products/ProductDetailPage";
+import { ProductsPage } from "@/app/products/ProductsPage";
 import { AcceptInvitationPage } from "@/auth/AcceptInvitationPage";
 import { AuthLayout } from "@/auth/AuthLayout";
 import { ForgotPasswordPage } from "@/auth/ForgotPasswordPage";
@@ -48,8 +50,15 @@ export const routes: RouteObject[] = [
               },
               {
                 path: "products",
-                element: <PagePlaceholder />,
                 handle: { crumb: (t) => t("shell.nav.products") } satisfies RouteHandle,
+                children: [
+                  { index: true, element: <ProductsPage /> },
+                  {
+                    path: ":productId",
+                    element: <ProductDetailPage />,
+                    handle: { crumb: (t) => t("products.detail.crumb") } satisfies RouteHandle,
+                  },
+                ],
               },
               {
                 path: "customers",
