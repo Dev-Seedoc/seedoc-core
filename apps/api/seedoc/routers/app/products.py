@@ -1,5 +1,6 @@
-"""Products (API.md §3.4). HTTP only: parse, call the service function with the same name, return its schema. Every
-member manages products (`EditorCtx`, BUSINESS_RULES §1)."""
+"""Products (API.md §3.4). HTTP only: parse, call the service function with the same name, return its schema
+(`create_product_release` lives in services/releases.py). Every member manages products (`EditorCtx`, BUSINESS_RULES
+§1)."""
 
 from uuid import UUID
 
@@ -13,11 +14,13 @@ from seedoc.schemas.products import (
     ProductCreate,
     ProductDocumentsSet,
     ProductRead,
+    ProductReleaseCreate,
     ProductReleaseDetailRead,
     ProductReleaseRead,
     ProductUpdate,
 )
 from seedoc.services import products as products_service
+from seedoc.services import releases as releases_service
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -62,6 +65,13 @@ async def get_product_language_matrix(product_id: UUID, db: DbSession, ctx: Edit
 @router.get("/{product_id}/releases")
 async def list_product_releases(product_id: UUID, db: DbSession, ctx: EditorCtx) -> Page[ProductReleaseRead]:
     return await products_service.list_product_releases(db, ctx, product_id)
+
+
+@router.post("/{product_id}/releases", status_code=status.HTTP_201_CREATED)
+async def create_product_release(
+    product_id: UUID, body: ProductReleaseCreate, db: DbSession, ctx: EditorCtx
+) -> ProductReleaseRead:
+    return await releases_service.create_product_release(db, ctx, product_id, body)
 
 
 @router.get("/{product_id}/releases/{release_no}")

@@ -5,12 +5,13 @@ from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, StringConstraints, field_validator
 
 from seedoc.models.documents import AccessLevel, DocType
 from seedoc.schemas.common import Name, RequiredLanguages
 
 MAX_PRODUCT_DOCUMENTS = 500
+MAX_CHANGE_NOTE = 2000
 
 
 class ProductCreate(BaseModel):
@@ -78,6 +79,12 @@ class LanguageMatrixRead(BaseModel):
 
 
 # ─────────────────────────── product releases (read only here) ───────────────────────────
+
+
+class ProductReleaseCreate(BaseModel):
+    """Body of `create_product_release`; a blank or missing note is stored as `null`."""
+
+    change_note: Annotated[str, StringConstraints(strip_whitespace=True, max_length=MAX_CHANGE_NOTE)] | None = None
 
 
 class ProductReleaseRead(BaseModel):

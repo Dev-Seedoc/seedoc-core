@@ -67,7 +67,7 @@ async def list_documents(db: AsyncSession, ctx: RequestContext, query: DocumentL
         if after is not None:
             statement = statement.where(tuple_(Document.title, Document.id) > tuple_(*after))
         rows = (await db.execute(statement)).all()
-        paths = await _get_folder_paths(db, tenant_id)
+        paths = await get_folder_paths(db, tenant_id)
         items = [_to_list_item(document, version, paths) for document, version in rows[: query.limit]]
 
     next_cursor = _encode_cursor(items[-1].title, items[-1].id) if len(rows) > query.limit else None
@@ -404,7 +404,7 @@ async def _read_document(db: AsyncSession, tenant_id: UUID, document_id: UUID) -
         )
         .order_by(Document.language)
     )
-    item = _to_list_item(document, version, await _get_folder_paths(db, tenant_id))
+    item = _to_list_item(document, version, await get_folder_paths(db, tenant_id))
     return DocumentRead(
         **item.model_dump(),
         versions_count=versions_count or 0,
@@ -416,7 +416,7 @@ async def _read_document(db: AsyncSession, tenant_id: UUID, document_id: UUID) -
     )
 
 
-async def _get_folder_paths(db: AsyncSession, tenant_id: UUID) -> dict[UUID, str]:
+async def get_folder_paths(db: AsyncSession, tenant_id: UUID) -> dict[UUID, str]:
     """`{folder id: "<space name>/<folder>/<subfolder>"}` for the whole tenant (BUSINESS_RULES §6 `folder_path`)."""
     folders = list(await db.scalars(select(Folder).where(Folder.tenant_id == tenant_id)))
     rows = await db.execute(select(Space.id, Space.name).where(Space.tenant_id == tenant_id))
@@ -438,7 +438,7 @@ async def list_document_items(db: AsyncSession, tenant_id: UUID, document_ids: l
             .where(Document.tenant_id == tenant_id, Document.id.in_(document_ids))
         )
     ).all()
-    folder_paths = await _get_folder_paths(db, tenant_id)
+    folder_paths = await get_folder_paths(db, tenant_id)
     items = [_to_list_item(document, version, folder_paths) for document, version in rows]
     return sorted(items, key=lambda item: (get_sort_key(item.title), item.language, str(item.id)))
 

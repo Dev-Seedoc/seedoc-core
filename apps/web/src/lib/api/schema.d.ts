@@ -552,7 +552,8 @@ export interface paths {
         /** List Product Releases */
         get: operations["list_product_releases"];
         put?: never;
-        post?: never;
+        /** Create Product Release */
+        post: operations["create_product_release"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1512,6 +1513,14 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /**
+         * ProductReleaseCreate
+         * @description Body of `create_product_release`; a blank or missing note is stored as `null`.
+         */
+        ProductReleaseCreate: {
+            /** Change Note */
+            change_note?: string | null;
         };
         /** ProductReleaseDetailRead */
         ProductReleaseDetailRead: {
@@ -3213,6 +3222,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_ProductReleaseRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_product_release: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: string;
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductReleaseCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductReleaseRead"];
                 };
             };
             /** @description Validation Error */
