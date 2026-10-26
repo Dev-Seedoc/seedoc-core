@@ -14,6 +14,7 @@ from typing import Protocol
 from uuid import uuid4
 
 import alembic.config
+import httpx
 import psycopg
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -35,6 +36,11 @@ _TEST_ENV = {
     "S3_SECRET_KEY": "test",
     "IP_HASH_PEPPER": "dGVzdC1wZXBwZXItdGVzdC1wZXBwZXItdGVzdC1wZXA=",
     "TOTP_ENCRYPTION_KEY": "dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHQ=",
+    # Empty, so a developer's real key in .env is never used: tests reach only the `fake_ai` provider.
+    "AI_PROVIDER": "openai",
+    "AI_API_KEY": "",
+    "AI_BASE_URL": "",
+    "EMBEDDING_MODEL": "text-embedding-3-small",
 }
 for _key, _value in _TEST_ENV.items():
     os.environ[_key] = _value
@@ -43,6 +49,7 @@ for _key, _value in _TEST_ENV.items():
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())  # pyright: ignore[reportDeprecated]
 
+from seedoc.ai import provider as ai_provider  # noqa: E402
 from seedoc.config import get_settings  # noqa: E402
 from seedoc.db import engine as db_engine  # noqa: E402
 from seedoc.jobs.app import close_job_app, open_job_app  # noqa: E402
@@ -55,6 +62,7 @@ from seedoc.security.rate_limit import reset_rate_limits  # noqa: E402
 from seedoc.security.sessions import SESSION_COOKIE  # noqa: E402
 from seedoc.security.tokens import hash_token, new_token  # noqa: E402
 from seedoc.security.totp import encrypt_totp_secret, new_totp_secret  # noqa: E402
+from tests.ai import FakeAi  # noqa: E402
 
 ROLES_SQL = Path(__file__).resolve().parents[3] / "infra" / "postgres" / "init" / "01-roles.sql"
 POSTGRES_IMAGE = "pgvector/pgvector:pg16"
@@ -176,6 +184,27 @@ def outbox(monkeypatch: pytest.MonkeyPatch) -> list[EmailMessage]:
     sent: list[EmailMessage] = []
     monkeypatch.setattr(mail_send, "_send_smtp", sent.append)
     return sent
+
+
+@pytest.fixture(autouse=True)
+def no_real_ai(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Every AI request fails the test unless it uses `fake_ai`, so no test can reach a real provider."""
+
+    def refuse(request: httpx.Request) -> httpx.Response:
+        raise AssertionError(f"a test called the AI provider without fake_ai: {request.url}")
+
+    monkeypatch.setattr(ai_provider, "transport", httpx.MockTransport(refuse))
+
+
+@pytest.fixture
+def fake_ai(monkeypatch: pytest.MonkeyPatch) -> Iterator[FakeAi]:
+    """AI configured (`AI_API_KEY` set) and answered by the fake provider; `fake_ai.requests` holds every request."""
+    fake = FakeAi()
+    monkeypatch.setattr(ai_provider, "transport", httpx.MockTransport(fake.handle))
+    monkeypatch.setenv("AI_API_KEY", "test-key")
+    get_settings.cache_clear()
+    yield fake
+    get_settings.cache_clear()  # monkeypatch restores the empty key after this; the next read sees it
 
 
 def get_mail_link(message: EmailMessage, path: str) -> str:

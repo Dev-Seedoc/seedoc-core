@@ -1,8 +1,9 @@
 """Processing of a document version (ARCHITECTURE §9, BUSINESS_RULES §3): the worker's `process_version` job.
 
 `pending → processing → ready | failed`. The stored file is checked against the version's size and SHA-256, its
-pages are read with pdfium, and the text is stored as chunks (`text_chunks`, full-text index per language). Until
-embeddings exist (M2-A1) a processed version is `ready` at once.
+pages are read with pdfium, and the text is stored as chunks (`text_chunks`, full-text index per language). Then
+`embed_chunks` adds an embedding to every chunk (batches of 96) and marks the version `ready`. Without `AI_API_KEY`
+(local, CI, staging until a key exists) the chunks stay without embedding and the version is `ready` at once.
 
 Runs in the worker as `seedoc_admin` (no request, no tenant context), so every query names the version id. Safe to
 repeat: a `ready` version is left alone, and the chunks of an earlier attempt are replaced, never added to.
@@ -12,15 +13,19 @@ Network and PDF work happen outside the database transactions.
 import asyncio
 import hashlib
 from datetime import UTC, datetime
+from typing import Any, cast
 from uuid import UUID
 
 import structlog
-from sqlalchemy import Text, delete, func, insert, select
+from sqlalchemy import CursorResult, Text, delete, func, insert, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from seedoc.ai.chunking import build_chunks
+from seedoc.ai.embeddings import batches
 from seedoc.ai.pdf_text import PdfReadError, extract_page_texts
+from seedoc.ai.provider import create_embeddings, is_ai_configured
 from seedoc.db.engine import get_admin_sessionmaker
+from seedoc.db.types import to_vector_literal
 from seedoc.models.documents import Document, DocumentVersion, ProcessingStatus, TextChunk
 from seedoc.storage.s3 import read_object
 
@@ -31,6 +36,14 @@ ERROR_FILE_MISSING = "the file is missing in storage"
 ERROR_FILE_CHANGED = "the stored file does not match its checksum"
 ERROR_NOT_READABLE = "the file is not a readable PDF (damaged or password-protected)"
 ERROR_INTERNAL = "processing failed; upload the file again or contact support"
+ERROR_INDEXING = "the text could not be indexed for search; upload the file again or contact support"
+
+
+_STORE_EMBEDDINGS = text(
+    "update text_chunks set embedding = batch.embedding::vector"
+    " from unnest(cast(:ids as bigint[]), cast(:vectors as text[])) as batch(id, embedding)"
+    " where text_chunks.id = batch.id"
+)
 
 
 class _ProcessingError(Exception):
@@ -39,20 +52,22 @@ class _ProcessingError(Exception):
         super().__init__(message)
 
 
-async def process_version(version_id: UUID) -> None:
+async def process_version(version_id: UUID) -> bool:
     """Process one version; a version that does not exist (deleted meanwhile) or is already `ready` is skipped.
-    A problem with the file marks the version `failed`; any other error is raised so the job is retried."""
+    A problem with the file marks the version `failed`; any other error is raised so the job is retried.
+    True when the chunks still need embeddings (the version stays `processing` and the caller queues `embed_chunks`).
+    """
     async with get_admin_sessionmaker()() as db:
         started = await _start(db, version_id)
         if started is None:
-            return
+            return False
         version, language = started
         try:
             page_texts = await _read_pages(version)
         except _ProcessingError as failure:
             await mark_version_failed(version_id, failure.message)
             log.warning("version_processing_failed", version_id=str(version_id), error=failure.message)
-            return
+            return False
 
         chunks = build_chunks(page_texts)
         async with db.begin():
@@ -73,8 +88,55 @@ async def process_version(version_id: UUID) -> None:
                         for chunk in chunks
                     ],
                 )
-            await _set_status(db, version_id, ProcessingStatus.READY, page_count=len(page_texts))
-        log.info("version_processed", version_id=str(version_id), page_count=len(page_texts), chunk_count=len(chunks))
+            needs_embeddings = bool(chunks) and is_ai_configured()
+            status = ProcessingStatus.PROCESSING if needs_embeddings else ProcessingStatus.READY
+            await _set_status(db, version_id, status, page_count=len(page_texts))
+        log.info(
+            "version_processed",
+            version_id=str(version_id),
+            page_count=len(page_texts),
+            chunk_count=len(chunks),
+            embeddings="queued" if needs_embeddings else "skipped",
+        )
+        return needs_embeddings
+
+
+async def embed_chunks(version_id: UUID) -> None:
+    """Embed the version's chunks that have no embedding yet, then mark it `ready`. Each batch is stored when it
+    comes back, so a retry continues where the last attempt stopped and never pays twice. Only a version that is
+    still `processing` is touched (deleted, `failed` or `ready` meanwhile → skipped). Provider errors are raised:
+    the job retries `AiUnavailableError` and fails the version on `AiConfigurationError`."""
+    async with get_admin_sessionmaker()() as db:
+        async with db.begin():
+            status = await db.scalar(select(DocumentVersion.processing_status).where(DocumentVersion.id == version_id))
+            if status is not ProcessingStatus.PROCESSING:
+                log.info("embedding_skipped", version_id=str(version_id), status=status)
+                return
+            rows = (
+                await db.execute(
+                    select(TextChunk.id, TextChunk.content)
+                    .where(TextChunk.version_id == version_id, TextChunk.embedding.is_(None))
+                    .order_by(TextChunk.chunk_index)
+                )
+            ).all()
+        total_tokens = 0
+        for batch in batches(rows):
+            result = await create_embeddings([row.content for row in batch])
+            total_tokens += result.total_tokens
+            async with db.begin():
+                # One statement per batch (all rows or none); an ORM bulk update by primary key lost single rows here.
+                stored = cast(
+                    CursorResult[Any],
+                    await db.execute(
+                        _STORE_EMBEDDINGS,
+                        {"ids": [row.id for row in batch], "vectors": [to_vector_literal(v) for v in result.vectors]},
+                    ),
+                )
+                if stored.rowcount != len(batch):  # chunks replaced meanwhile (processed again): start over
+                    raise RuntimeError("the chunks changed while they were embedded")
+        async with db.begin():
+            await _set_status(db, version_id, ProcessingStatus.READY)
+        log.info("version_embedded", version_id=str(version_id), chunk_count=len(rows), total_tokens=total_tokens)
 
 
 async def mark_version_failed(version_id: UUID, message: str = ERROR_INTERNAL) -> None:

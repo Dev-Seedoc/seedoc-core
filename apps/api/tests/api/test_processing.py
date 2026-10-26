@@ -16,10 +16,12 @@ import pytest
 from sqlalchemy import select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from seedoc.ai.provider import AiUnavailableError
 from seedoc.jobs import processing as processing_jobs
 from seedoc.models import DocumentVersion, MemberRole, TextChunk
 from seedoc.services import processing as processing_service
 from seedoc.storage.s3 import delete_object, put_object
+from tests.ai import FakeAi, fake_embedding, ready_version
 from tests.conftest import ClientAs, MemberClient, RunJobs
 from tests.pdfs import make_pdf
 
@@ -149,7 +151,7 @@ async def test_worker_processes_a_pdf_to_ready(run_jobs: RunJobs, lib: Library, 
     assert [(chunk.page_no, chunk.chunk_index) for chunk in chunks] == [(1, 0), (3, 1)]  # page 2 has no text
     assert chunks[0].content == MANUAL_PAGES[0]
     assert {chunk.tenant_id for chunk in chunks} == {lib.editor.tenant.id}
-    assert all(chunk.embedding is None for chunk in chunks)  # embeddings come with M2-A1
+    assert all(chunk.embedding is None for chunk in chunks)  # no AI_API_KEY in tests: stored without embedding
 
 
 async def test_chunks_are_searchable_in_the_documents_language(
@@ -298,3 +300,154 @@ async def test_an_unexpected_error_fails_the_version_only_after_the_last_retry(
     version = (await _versions(lib, document))[0]
     assert version["processing_status"] == status
     assert version["processing_error"] == (processing_service.ERROR_INTERNAL if status == "failed" else None)
+
+
+# ─────────────────────────── embeddings (M2-A1) ───────────────────────────
+
+MANY_PAGES = [f"Seite {number}: Prüfung der Baugruppe {number}." for number in range(1, 101)]  # 100 chunks
+
+
+def _job_context(attempts: int) -> procrastinate.JobContext:
+    return cast(procrastinate.JobContext, SimpleNamespace(job=SimpleNamespace(attempts=attempts)))
+
+
+async def _status(admin_db: AsyncSession, version_id: str) -> tuple[str, str | None]:
+    version = await admin_db.get_one(DocumentVersion, UUID(version_id), populate_existing=True)
+    return version.processing_status.value, version.processing_error
+
+
+async def _processed(lib: Library, pages: list[str]) -> str:
+    """Upload and run only `process_version` (no worker): the version waits for `embed_chunks`."""
+    document = await _document(lib, make_pdf(pages))
+    version_id = (await _versions(lib, document))[0]["id"]
+    assert await processing_service.process_version(UUID(version_id)) is True
+    return version_id
+
+
+async def test_with_ai_every_chunk_gets_its_embedding_and_the_version_is_ready(
+    fake_ai: FakeAi, run_jobs: RunJobs, lib: Library, admin_db: AsyncSession
+) -> None:
+    document = await _document(lib, make_pdf(MANUAL_PAGES))
+
+    await run_jobs()  # process_version queues embed_chunks, which runs in the same pass
+
+    version = (await _versions(lib, document))[0]
+    assert (version["processing_status"], version["page_count"], version["processing_error"]) == ("ready", 3, None)
+    chunks = await _chunks(admin_db, version["id"])
+    assert fake_ai.inputs == [[chunk.content for chunk in chunks]]
+    for chunk in chunks:
+        assert chunk.embedding == pytest.approx(fake_embedding(chunk.content))
+    assert fake_ai.requests[0].headers["authorization"] == "Bearer test-key"
+
+
+@pytest.mark.usefixtures("fake_ai")
+async def test_with_ai_a_processed_version_stays_processing_until_embedded(
+    lib: Library, admin_db: AsyncSession
+) -> None:
+    version_id = await _processed(lib, MANUAL_PAGES)
+
+    assert await _status(admin_db, version_id) == ("processing", None)
+    assert all(chunk.embedding is None for chunk in await _chunks(admin_db, version_id))
+
+
+async def test_embeddings_are_requested_in_batches_of_96(
+    fake_ai: FakeAi, run_jobs: RunJobs, lib: Library, admin_db: AsyncSession
+) -> None:
+    document = await _document(lib, make_pdf(MANY_PAGES))
+
+    await run_jobs()
+
+    version_id = (await _versions(lib, document))[0]["id"]
+    chunks = await _chunks(admin_db, version_id)
+    assert [len(texts) for texts in fake_ai.inputs] == [96, 4]
+    assert [text for texts in fake_ai.inputs for text in texts] == [chunk.content for chunk in chunks]
+    assert all(chunk.embedding is not None for chunk in chunks)
+    assert await _status(admin_db, version_id) == ("ready", None)
+
+
+async def test_a_pdf_without_text_is_ready_without_calling_the_provider(
+    fake_ai: FakeAi, run_jobs: RunJobs, lib: Library
+) -> None:
+    document = await _document(lib, make_pdf(["", ""]))  # e.g. a scan: no text to embed
+
+    await run_jobs()
+
+    assert (await _versions(lib, document))[0]["processing_status"] == "ready"
+    assert fake_ai.requests == []
+
+
+async def test_an_outage_keeps_the_stored_batches_and_the_retry_sends_only_the_rest(
+    fake_ai: FakeAi, lib: Library, admin_db: AsyncSession
+) -> None:
+    version_id = await _processed(lib, MANY_PAGES)
+    fake_ai.fail_after = 1  # the first batch is answered, the second one fails
+
+    with pytest.raises(AiUnavailableError):
+        await processing_service.embed_chunks(UUID(version_id))
+
+    chunks = await _chunks(admin_db, version_id)
+    assert [chunk.embedding is not None for chunk in chunks] == [True] * 96 + [False] * 4
+    assert await _status(admin_db, version_id) == ("processing", None)
+
+    fake_ai.fail_after = None
+    await processing_service.embed_chunks(UUID(version_id))
+
+    assert [len(texts) for texts in fake_ai.inputs] == [96, 4, 4]  # the retry paid only for the missing 4
+    assert all(chunk.embedding is not None for chunk in await _chunks(admin_db, version_id))
+    assert await _status(admin_db, version_id) == ("ready", None)
+
+
+@pytest.mark.parametrize(("attempts", "status"), [(0, "processing"), (5, "failed")], ids=["first_try", "last_try"])
+async def test_a_provider_outage_fails_the_version_only_after_the_last_retry(
+    fake_ai: FakeAi, lib: Library, admin_db: AsyncSession, attempts: int, status: str
+) -> None:
+    version_id = await _processed(lib, MANUAL_PAGES)
+    fake_ai.fail_status = 503
+
+    with pytest.raises(AiUnavailableError):  # raised on, so Procrastinate decides about the retry
+        await processing_jobs.embed_chunks.func(_job_context(attempts), version_id=version_id)
+
+    assert await _status(admin_db, version_id) == (
+        status,
+        processing_service.ERROR_INDEXING if status == "failed" else None,
+    )
+
+
+async def test_a_refused_key_fails_the_version_at_once(fake_ai: FakeAi, lib: Library, admin_db: AsyncSession) -> None:
+    version_id = await _processed(lib, MANUAL_PAGES)
+    fake_ai.fail_status = 401
+
+    await processing_jobs.embed_chunks.func(_job_context(0), version_id=version_id)  # no retry: it cannot help
+
+    assert await _status(admin_db, version_id) == ("failed", processing_service.ERROR_INDEXING)
+    assert len(fake_ai.requests) == 1
+
+
+async def test_embedding_leaves_a_version_alone_that_is_not_processing(
+    fake_ai: FakeAi, run_jobs: RunJobs, lib: Library, admin_db: AsyncSession
+) -> None:
+    document = await _document(lib, make_pdf(MANUAL_PAGES))
+    await run_jobs()
+    version_id = (await _versions(lib, document))[0]["id"]
+    sent = len(fake_ai.requests)
+
+    await processing_service.embed_chunks(UUID(version_id))  # ready already (a duplicate job)
+    await processing_service.embed_chunks(uuid4())  # deleted meanwhile
+
+    assert len(fake_ai.requests) == sent
+    assert await _status(admin_db, version_id) == ("ready", None)
+
+
+async def test_ready_version_helper_builds_a_searchable_ready_version(lib: Library, admin_db: AsyncSession) -> None:
+    document = await _document(lib, make_pdf(MANUAL_PAGES))
+    version_id = (await _versions(lib, document))[0]["id"]
+
+    chunks = await ready_version(admin_db, version_id, ["Filter wechseln", "Öl prüfen"])
+
+    assert [(chunk.page_no, chunk.chunk_index, chunk.content) for chunk in chunks] == [
+        (1, 0, "Filter wechseln"),
+        (2, 1, "Öl prüfen"),
+    ]
+    assert chunks[1].embedding == pytest.approx(fake_embedding("Öl prüfen"))
+    version = (await _versions(lib, document))[0]
+    assert (version["processing_status"], version["page_count"]) == ("ready", 2)

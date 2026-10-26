@@ -9,6 +9,11 @@ from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.types import UserDefinedType
 
 
+def to_vector_literal(values: list[float]) -> str:
+    """pgvector's text form, `'[0.1,0.2]'` (exact: `repr` keeps every digit of the float)."""
+    return "[" + ",".join(repr(float(x)) for x in values) + "]"
+
+
 class Vector(UserDefinedType[list[float]]):
     """pgvector `vector(dimensions)`; Python value `list[float]`."""
 
@@ -24,7 +29,7 @@ class Vector(UserDefinedType[list[float]]):
     @override
     def bind_processor(self, dialect: Dialect) -> Any:
         def process(value: list[float] | None) -> str | None:
-            return None if value is None else "[" + ",".join(repr(float(x)) for x in value) + "]"
+            return None if value is None else to_vector_literal(value)
 
         return process
 
