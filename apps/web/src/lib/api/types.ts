@@ -54,6 +54,7 @@ export type ProcessingStatus = Schemas["ProcessingStatus"];
 export type ProductCreate = Schemas["ProductCreate"];
 export type ProductDocumentsSet = Schemas["ProductDocumentsSet"];
 export type ProductRead = Schemas["ProductRead"];
+export type ProductReleaseCreate = Schemas["ProductReleaseCreate"];
 export type ProductReleaseDetailRead = Schemas["ProductReleaseDetailRead"];
 export type ProductReleaseItemRead = Schemas["ProductReleaseItemRead"];
 export type ProductReleaseRead = Schemas["ProductReleaseRead"];

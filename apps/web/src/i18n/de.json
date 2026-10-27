@@ -447,14 +447,29 @@
       "description": "Jede Freigabe hält die damals aktuellen Versionen aller Dokumente des Produkts fest. Freigaben ändern sich nie.",
       "loadFailed": "Die Freigaben konnten nicht geladen werden.",
       "emptyTitle": "Noch keine Freigabe",
-      "emptyDescription": "Freigaben des Produkts erscheinen hier.",
+      "emptyDescription": "Mit „Freigeben“ halten Sie den aktuellen Stand aller Dokumente des Produkts fest.",
       "release": "Freigabe",
       "changeNote": "Änderungshinweis",
       "itemCount": "Dokumente",
       "createdAt": "Erstellt am",
       "createdBy": "Erstellt von",
       "items": "Dokumente der Freigabe {{no}}",
-      "itemsLoadFailed": "Die Dokumente der Freigabe konnten nicht geladen werden."
+      "itemsLoadFailed": "Die Dokumente der Freigabe konnten nicht geladen werden.",
+      "create": "Freigeben",
+      "createTitle": "„{{name}}“ freigeben",
+      "createDescription_one": "Die aktuelle Version des {{count}} Dokuments wird eingefroren. Spätere Änderungen ändern diese Freigabe nicht.",
+      "createDescription_other": "Die aktuellen Versionen der {{count}} Dokumente werden eingefroren. Spätere Änderungen ändern diese Freigabe nicht.",
+      "changeNoteLabel": "Änderungshinweis (optional)",
+      "changeNotePlaceholder": "z. B. Neue Wartungsanleitung, Schaltplan überarbeitet",
+      "changeNoteCount": "{{count}} / {{max}} Zeichen",
+      "submit": "Freigeben",
+      "created": "Freigabe {{no}} erstellt.",
+      "blocked": "Die Freigabe ist nicht möglich.",
+      "problem": {
+        "noItems": "Das Produkt hat noch keine Dokumente.",
+        "versionNotReady": "Diese Dokumente sind noch nicht bereit (in Bearbeitung oder fehlerhaft):",
+        "unknownDocument": "Dokument öffnen"
+      }
     }
   },
   "customers": {
