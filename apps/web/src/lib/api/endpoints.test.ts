@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createDocument,
   createCustomer,
+  createProductRelease,
   createUpload,
   deleteFolder,
   getMe,
@@ -206,5 +207,25 @@ describe("endpoints", () => {
       "/api/v1/app/tenants/t-1/customers",
     ]);
     expect(await create?.json()).toEqual({ name: "Muster AG", contact_email: "info@muster.de" });
+  });
+
+  it("createProductRelease posts the change note and turns 409 publish_blocked into an ApiError with the problems", async () => {
+    const problems = [{ code: "version_not_ready", document_id: "d-1" }];
+    const fetchMock = mockFetch(
+      jsonResponse(409, { error: { code: "publish_blocked", message: "blocked", details: { problems } } }),
+    );
+
+    const error: unknown = await createProductRelease("t-1", "p-1", { change_note: "Neue Wartung" }).catch(
+      (caught: unknown) => caught,
+    );
+
+    const request = fetchMock.mock.calls[0]?.[0];
+    expect([request?.method, new URL(request?.url ?? "").pathname]).toEqual([
+      "POST",
+      "/api/v1/app/tenants/t-1/products/p-1/releases",
+    ]);
+    expect(await request?.json()).toEqual({ change_note: "Neue Wartung" });
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ status: 409, code: "publish_blocked", details: { problems } });
   });
 });

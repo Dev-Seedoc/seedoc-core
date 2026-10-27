@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   createProduct,
+  createProductRelease,
   getProduct,
   getProductLanguageMatrix,
   getProductRelease,
@@ -15,7 +16,7 @@ import {
   updateProduct,
 } from "../endpoints";
 import { queryKeys } from "../queryKeys";
-import type { ProductCreate, ProductDocumentsSet, ProductUpdate } from "../types";
+import type { ProductCreate, ProductDocumentsSet, ProductReleaseCreate, ProductUpdate } from "../types";
 
 // The whole list in one page (`next_cursor` is always null for products).
 export function useProducts(tenantId: string) {
@@ -100,6 +101,17 @@ export function useSetProductDocuments(tenantId: string, productId: string) {
   const invalidate = useInvalidateProducts(tenantId);
   return useMutation({
     mutationFn: (body: ProductDocumentsSet) => setProductDocuments(tenantId, productId, body),
+    meta: { errorToast: false },
+    onSuccess: invalidate,
+  });
+}
+
+// A new release changes the release list and the product's `latest_release_no` (list and header): the whole prefix.
+// The dialog explains 409 publish_blocked itself.
+export function useCreateProductRelease(tenantId: string, productId: string) {
+  const invalidate = useInvalidateProducts(tenantId);
+  return useMutation({
+    mutationFn: (body: ProductReleaseCreate) => createProductRelease(tenantId, productId, body),
     meta: { errorToast: false },
     onSuccess: invalidate,
   });

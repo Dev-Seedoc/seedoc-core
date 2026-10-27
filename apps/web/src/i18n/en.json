@@ -447,14 +447,29 @@
       "description": "Each release keeps the versions of all product documents that were current at the time. Releases never change.",
       "loadFailed": "The releases could not be loaded.",
       "emptyTitle": "No release yet",
-      "emptyDescription": "The product's releases appear here.",
+      "emptyDescription": "“Release” records the current state of all of the product's documents.",
       "release": "Release",
       "changeNote": "Change note",
       "itemCount": "Documents",
       "createdAt": "Created on",
       "createdBy": "Created by",
       "items": "Documents of release {{no}}",
-      "itemsLoadFailed": "The documents of the release could not be loaded."
+      "itemsLoadFailed": "The documents of the release could not be loaded.",
+      "create": "Release",
+      "createTitle": "Release “{{name}}”",
+      "createDescription_one": "The current version of the {{count}} document is frozen. Later changes never change this release.",
+      "createDescription_other": "The current versions of the {{count}} documents are frozen. Later changes never change this release.",
+      "changeNoteLabel": "Change note (optional)",
+      "changeNotePlaceholder": "e.g. new maintenance manual, wiring diagram revised",
+      "changeNoteCount": "{{count}} / {{max}} characters",
+      "submit": "Release",
+      "created": "Release {{no}} created.",
+      "blocked": "The release is not possible.",
+      "problem": {
+        "noItems": "The product has no documents yet.",
+        "versionNotReady": "These documents are not ready yet (processing or failed):",
+        "unknownDocument": "Open document"
+      }
     }
   },
   "customers": {

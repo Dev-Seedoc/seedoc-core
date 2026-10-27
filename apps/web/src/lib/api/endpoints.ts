@@ -39,7 +39,9 @@ import type {
   ProductCreate,
   ProductDocumentsSet,
   ProductRead,
+  ProductReleaseCreate,
   ProductReleaseDetailRead,
+  ProductReleaseRead,
   ProductUpdate,
   ReauthenticateRequest,
   SpaceCreate,
@@ -381,6 +383,20 @@ export function listProductReleases(tenantId: string, productId: string): Promis
   return unwrap(
     client.GET("/api/v1/app/tenants/{tenant_id}/products/{product_id}/releases", {
       params: { path: productPath(tenantId, productId) },
+    }),
+  );
+}
+
+// Freezes the current version of every document in the set (API.md §3.4); 409 publish_blocked lists the problems.
+export function createProductRelease(
+  tenantId: string,
+  productId: string,
+  body: ProductReleaseCreate,
+): Promise<ProductReleaseRead> {
+  return unwrap(
+    client.POST("/api/v1/app/tenants/{tenant_id}/products/{product_id}/releases", {
+      params: { path: productPath(tenantId, productId) },
+      body,
     }),
   );
 }

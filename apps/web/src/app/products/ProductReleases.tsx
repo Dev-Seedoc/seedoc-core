@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, History } from "lucide-react";
+import { ChevronDown, ChevronRight, History, Stamp } from "lucide-react";
 import { Fragment, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -12,14 +12,17 @@ import type { ProductRead } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/formatDate";
 import { getLanguageLabel } from "@/lib/languages";
 
+import { CreateReleaseDialog } from "./CreateReleaseDialog";
+
 const COLUMN_COUNT = 5;
 
-// The product's releases, newest first (API.md §3.4). Read only here: creating one (`create_product_release`) comes
-// with Raven's release task. A row opens the versions it froze.
+// The product's releases, newest first (API.md §3.4), and "Freigeben" (`create_product_release`). A row opens the
+// versions it froze.
 export function ProductReleases({ tenantId, product }: { tenantId: string; product: ProductRead }) {
   const { t } = useTranslation();
   const releases = useProductReleases(tenantId, product.id);
   const [openNo, setOpenNo] = useState<number | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   let content;
   if (releases.isPending) {
@@ -93,13 +96,32 @@ export function ProductReleases({ tenantId, product }: { tenantId: string; produ
 
   return (
     <section aria-labelledby="product-releases" className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <h2 id="product-releases" className="text-lg font-semibold">
-          {t("products.releases.title")}
-        </h2>
-        <p className="text-muted-foreground text-sm">{t("products.releases.description")}</p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-col gap-1">
+          <h2 id="product-releases" className="text-lg font-semibold">
+            {t("products.releases.title")}
+          </h2>
+          <p className="text-muted-foreground text-sm">{t("products.releases.description")}</p>
+        </div>
+        <Button
+          size="sm"
+          onClick={() => {
+            setIsCreateOpen(true);
+          }}
+        >
+          <Stamp aria-hidden="true" />
+          {t("products.releases.create")}
+        </Button>
       </div>
       {content}
+      <CreateReleaseDialog
+        tenantId={tenantId}
+        product={product}
+        open={isCreateOpen}
+        onClose={() => {
+          setIsCreateOpen(false);
+        }}
+      />
     </section>
   );
 }
